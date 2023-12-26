@@ -1,3 +1,6 @@
+tmp
+cachedfacts
+.vagrant
 .vscode
 .idea
 *.iml
