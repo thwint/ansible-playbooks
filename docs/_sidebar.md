@@ -1,0 +1,10 @@
+- [Ansible playbooks](README.md)
+- Playbooks
+- Roles
+  - [Base](roles/base.md)
+  - [Docker container](roles/docker_container.md)
+  - [Docker daemon](roles/docker_daemon.md)
+  - [Hardening](roles/hardening.md)
+  - [Mailcow](roles/mailcow.md)
+  - [Partitioning](roles/partitioning.md)
+- Misc
