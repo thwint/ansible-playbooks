@@ -7,6 +7,8 @@
     opts: defaults,rw,nosuid,nodev,noexec,relatime,size=500m
     state: mounted
     fstype: tmpfs
+  tags:
+    - base
 
 - name: "Base | Set default locale"
   become: true
@@ -15,6 +17,8 @@
     regexp: "^LANG="
     line: "LANG={{ default_locale }}"
   notify: "Reconfigure locales"
+  tags:
+    - base
 
 - name: "Base | Update outdated packages"
   become: true
@@ -48,6 +52,8 @@
     shell: /bin/bash
   when: 'item.create_user'
   with_items: '{{ users }}'
+  tags:
+    - base
 
 - name: "Base | Create .ssh folder"
   become: true
@@ -58,46 +64,44 @@
   with_items: '{{ users }}'
   tags:
     - base
-    - user
 
 - name: "Base | Add authorized key"
   become: true
   ansible.posix.authorized_key:
     user: "{{ item.username }}"
     state: present
-    key: "{{ item.public_keys | join(\"\n\")  }}"
+    key: "{{ item.public_ssh_keys | join(\"\n\")  }}"
     path: "{{ item.homedir }}/.ssh/authorized_keys"
     manage_dir: false
   with_items: '{{ users }}'
   tags:
     - base
-    - user
 
-- name: "Base | Add bitbucket read only key"
+- name: "Base | Add git read only keys"
   become: true
   ansible.builtin.copy:
-    src: files/ssh/{{ openhab.config.repo.key }}
-    dest: "/home/{{ item.username }}/.ssh"
-    owner: "{{ item.username }}"
+    src: files/ssh/{{ item.1.key }}
+    dest: "/home/{{ item.0.username }}/.ssh"
+    owner: "{{ item.0.username }}"
     mode: '0600'
-  with_items: '{{ users }}'
+  loop: "{{ users | subelements('private_ssh_keys') }}"
   tags:
-    - user
+    - base
 
-- name: "Base | Configure bitbucket key"
+- name: "Base | Configure git read-only keys "
   become: true
   ansible.builtin.blockinfile:
-    marker: "# {mark} ANSIBLE MANAGED BLOCK (bitbucket.org)"
-    path: "/home/{{ item.username }}/.ssh/config"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK ({{ item.1.server }})"
+    path: "/home/{{ item.0.username }}/.ssh/config"
     block: |
-      Host bitbucket.org
-        HostName bitbucket.org
+      Host {{ item.1.server }}
+        HostName {{ item.1.server }}
         User git
-        IdentityFile ~/.ssh/{{ openhab.config.repo.key }}
-    owner: "{{ item.username }}"
+        IdentityFile ~/.ssh/{{ item.1.key }}
+    owner: "{{ item.0.username }}"
     mode: '0644'
     create: true
-  with_items: '{{ users }}'
+  loop: "{{ users | subelements('private_ssh_keys') }}"
   tags:
     - base
 
