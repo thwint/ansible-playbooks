@@ -6,9 +6,9 @@ profile: production
 # Allows dumping of results in SARIF format
 # sarif_file: result.sarif
 
-# exclude_paths included in this file are parsed relative to this file's location
-# and not relative to the CWD of execution. CLI arguments passed to the --exclude
-# option are parsed relative to the CWD of execution.
+# exclude_paths included in this file are parsed relative to this file's
+# location and not relative to the CWD of execution. CLI arguments passed to
+# the --exclude option are parsed relative to the CWD of execution.
 exclude_paths:
   - .cache/ # implicit unless exclude_paths is defined in config
   - "collections/ansible_collections"
@@ -66,10 +66,11 @@ warn_list:
   # - yaml[document-start]  # you can also use sub-rule matches
 
 # Some rules can transform files to fix (or make it easier to fix) identified
-# errors. `ansible-lint --write` will reformat YAML files and run these transforms.
-# By default it will run all transforms (effectively `write_list: ["all"]`).
-# You can disable running transforms by setting `write_list: ["none"]`.
-# Or only enable a subset of rule transforms by listing rules/tags here.
+# errors. `ansible-lint --write` will reformat YAML files and run these
+# transforms. By default it will run all transforms (effectively
+# `write_list: ["all"]`). You can disable running transforms by setting
+# `write_list: ["none"]`. Or only enable a subset of rule transforms by listing
+# rules/tags here.
 # write_list:
 #   - all
 

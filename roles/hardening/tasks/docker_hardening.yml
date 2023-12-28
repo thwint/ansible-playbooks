@@ -1,0 +1,15 @@
+---
+- name: "docker_hardening | Docker daemon auditd rules"
+  become: true
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/audit/rules.d/{{ item | basename }}"
+    owner: root
+    group: root
+    mode: '0640'
+  with_fileglob:
+    - files/etc/auditd/rules.d/02-cis-docker.rules
+  notify:
+    - Restart auditd
+  tags:
+    - hardening

@@ -1,0 +1,96 @@
+---
+version: '2.1'
+services:
+  clamd-mailcow:
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/clamdcheck.sh"]
+
+  dovecot-mailcow:
+    networks:
+      web:
+      mailcow:
+{% if traefik_ssl_enabled | default(false, true) %}
+    labels:
+      traefik.enable: "true"
+      traefik.tcp.routers.imaps.entrypoints: imaps
+      traefik.tcp.routers.imaps.rule: HostSNI(`${MAILCOW_HOSTNAME}`)
+      traefik.tcp.routers.imaps.service: imaps
+      traefik.tcp.routers.imaps.tls: "true"
+      traefik.tcp.routers.imaps.tls.certresolver: letsencrypt
+      traefik.tcp.services.imaps.loadbalancer.server.port: 993
+      traefik.tcp.routers.pop3s.entrypoints: pop3s
+      traefik.tcp.routers.pop3s.rule: HostSNI(`${MAILCOW_HOSTNAME}`)
+      traefik.tcp.routers.pop3s.service: pop3s
+      traefik.tcp.routers.pop3s.tls: "true"
+      traefik.tcp.routers.pop3s.tls.certresolver: letsencrypt
+      traefik.tcp.services.pop3s.loadbalancer.server.port: 995
+      traefik.docker.network: {{ docker_frontend_network}}
+{% endif %}
+    healthcheck:
+      test: ["CMD", "/usr/bin/doveadm", "service", "status"]
+
+  memcached-mailcow:
+    healthcheck:
+      test: ["CMD", "/usr/bin/nc", "-z", "127.0.0.1", "11211"]
+
+  nginx-mailcow:
+    networks:
+      web:
+    labels:
+      traefik.enable: "true"
+{% if traefik_ssl_enabled | default(false, true) %}
+      traefik.http.routers.moo.rule: >-
+{% for rule in mailcow__traefik_router_rules %}
+        Host(`{{ rule }}`) ||
+{% endfor %}
+        Host(`${MAILCOW_HOSTNAME}`)
+      traefik.http.routers.moo.tls: "true"
+      traefik.http.routers.moo.tls.certresolver: letsencrypt
+      traefik.http.services.moo.loadbalancer.server.port: ${HTTP_PORT}
+      traefik.http.routers.moo.entrypoints: websecure
+      traefik.docker.network: {{ docker_frontend_network}}
+{% endif %}
+    healthcheck:
+      test: ["CMD-SHELL", "/usr/bin/curl -so /dev/null http://localhost:8080 || exit 1"]
+
+  postfix-mailcow:
+    healthcheck:
+      test: ["CMD", "postfix", "status"]
+    mem_limit: 100m
+    cpu_shares: 50
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    pids_limit: 50
+    networks:
+      web:
+      mailcow:
+{% if traefik_ssl_enabled | default(false, true) %}
+    labels:
+      traefik.enable: "true"
+      traefik.tcp.routers.smtps.entrypoints: smtps
+      traefik.tcp.routers.smtps.rule: HostSNI(`${MAILCOW_HOSTNAME}`)
+      traefik.tcp.routers.smtps.service: smtps
+      traefik.tcp.routers.smtps.tls: "true"
+      traefik.tcp.routers.smtps.tls.certresolver: letsencrypt
+      traefik.tcp.services.smtps.loadbalancer.server.port: 465
+      traefik.docker.network: {{ docker_frontend_network}}
+{% endif %}
+
+  solr-mailcow:
+    healthcheck:
+      test: ["CMD", "curl", "http://localhost:8983/solr/dovecot-fts/admin/ping"]
+    mem_limit: 500m
+    cpu_shares: 50
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    pids_limit: 100
+
+networks:
+  web:
+    external: true
+    name: {{ docker_frontend_network}}
+  mailcow:
+    external: true
+    name: mailcowdockerized_mailcow-network

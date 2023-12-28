@@ -1,0 +1,19 @@
+---
+- name: >-
+    2_services | 2.2.16 Ensure rsync service is either not installed or masked
+  become: true
+  ansible.builtin.systemd_service:
+    name: rsync
+    enabled: false
+    masked: true
+  tags:
+    - hardening
+
+- name: "2_services | 2.3.4 Ensure telnet client is not installed"
+  become: true
+  ansible.builtin.package:
+    name:
+      - telnet # 2.3.4
+    state: absent
+  tags:
+    - hardening

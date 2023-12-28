@@ -1,0 +1,124 @@
+---
+- name: "Read disk information"
+  community.general.parted:
+    device: /dev/vda
+    unit: MiB
+  register: disk_info
+
+- name: "Change partitioning and move exisiting data"
+  when: disk_info.partitions[-1].end < (disk_info.disk.size - 10)
+  block:
+    - name: "Create LVM partition"
+      community.general.parted:
+        device: /dev/vda
+        flags: [lvm]
+        number: "{{ disk_info.partitions | length + 1 }}"
+        label: gpt
+        part_start: >-
+          "{{ disk_info.partitions[disk_info.partitions |
+          length - 1].end + 1 }}MiB"
+        state: present
+
+    - name: "Create volume group"
+      community.general.lvg:
+        vg: "{{ lvm.vg_name }}"
+        pvs: "{{ lvm.device }}{{ disk_info.partitions | length + 1 }}"
+        state: active
+
+    - name: "Create logical volumes"
+      community.general.lvol:
+        vg: "{{ lvm.vg_name }}"
+        lv: "{{ item.name }}"
+        size: "{{ item.size }}"
+      with_items: '{{ lvm.volumes }}'
+
+    - name: "Format logical volumes"
+      community.general.filesystem:
+        dev: "/dev/mapper/{{ lvm.vg_name }}-{{ item.name }}"
+        fstype: "{{ item.fstype }}"
+      with_items: '{{ lvm.volumes }}'
+
+    - name: "Mount root volume"
+      ansible.posix.mount:
+        src: /dev/vda3
+        path: /mnt
+        fstype: ext4
+        state: ephemeral
+
+    - name: "Mount boot volume"
+      ansible.posix.mount:
+        src: /dev/vda2
+        path: /mnt/boot
+        fstype: ext4
+        state: ephemeral
+
+    - name: "Create directories"
+      ansible.builtin.file:
+        path: "/mnt{{ item.mount }}"
+        owner: root
+        group: root
+        mode: '0755'
+        state: directory
+      with_items: '{{ lvm.volumes }}'
+
+    - name: "Add volumes to fstab"
+      ansible.posix.mount:
+        src: /dev/mapper/{{ lvm.vg_name }}-{{ item.name }}
+        path: "{{ item.mount }}"
+        fstype: "{{ item.fstype }}"
+        fstab: /mnt/etc/fstab
+        state: present
+      with_items: '{{ lvm.volumes }}'
+
+    - name: "Temporary mount /home"
+      ansible.posix.mount:
+        src: /dev/mapper/vg_data-home
+        path: /mnt/mnt
+        fstype: ext4
+        state: ephemeral
+
+    - name: "Move /home to new partition"
+      ansible.builtin.command:
+        argv:
+          - /bin/zsh
+          - -c
+          - "mv /mnt/home/* /mnt/mnt"
+      register: home_moved
+      changed_when: home_moved.rc == 0
+
+    - name: "Unmount /home"
+      ansible.posix.mount:
+        path: /mnt/mnt
+        state: unmounted
+
+    - name: "Temporary mount /var"
+      ansible.posix.mount:
+        src: /dev/mapper/vg_data-var
+        path: /mnt/mnt
+        fstype: ext4
+        state: ephemeral
+
+    - name: "Move /var to new partition"
+      ansible.builtin.command:
+        argv:
+          - /bin/zsh
+          - -c
+          - "mv /mnt/var/* /mnt/mnt"
+      register: var_moved
+      changed_when: var_moved.rc == 0
+
+    - name: "Unmount /var"
+      ansible.posix.mount:
+        path: /mnt/mnt
+        state: unmounted
+
+- name: "Inform not enough space"
+  ansible.builtin.debug:
+    msg: There was not enough space to create another partition!
+  when: disk_info.partitions[-1].end > (disk_info.disk.size - 10)
+
+- name: "Playbook finished rebooting system" # noqa ignore-errors
+  ansible.builtin.reboot:
+    msg: "Rebooting machine"
+    reboot_timeout: 1
+  ignore_errors: true

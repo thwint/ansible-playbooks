@@ -1,0 +1,24 @@
+#
+# Auditd Rules for Docker
+#
+
+# CIS rule 1.5: Ensure auditing is configured for the docker daemon
+-w /usr/bin/docker -k docker
+
+# CIS rule 1.6: Ensure auditing is configured for Docker files and directories
+-w /var/lib/docker -k docker
+
+# CIS rule 1.7: Ensure auditing is configured for Docker files and directories - /etc/docker
+-w /etc/docker -k docker
+
+# CIS rule 1.8: Ensure auditing is configured for Docker files and directories - docker.service
+-w /usr/lib/systemd/system/docker.service -k docker
+
+# CIS rule 1.9: 1.9 Ensure auditing is configured for Docker files and directories - docker.socket
+-w /usr/lib/systemd/system/docker.socket -k docker
+
+# CIS rule 1.10 Ensure auditing is configured for Docker files and directories - /etc/default/docker
+-w /etc/default/docker -k docker
+
+# CIS rule 1.11 Ensure auditing is configured for Docker files and directories - /etc/docker/daemon.json
+-w /etc/docker/daemon.json -k docker
