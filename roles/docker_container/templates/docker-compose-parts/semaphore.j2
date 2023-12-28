@@ -1,0 +1,56 @@
+  semaphore:
+    image: semaphoreui/semaphore:{{ semaphore_version | default("latest", true) }}
+    labels:
+      - "traefik.docker.network=frontend"
+      - "traefik.enable=true"
+      # Routers
+      - "traefik.http.routers.semaphore.rule=Host(`{{ inventory_hostname }}`) && PathPrefix(`/semaphore`)"
+      - "traefik.http.routers.semaphore.entrypoints=web"
+{% if ssl_enabled | default(false, true) %}
+      - "traefik.http.routers.semaphore.middlewares=https-redirect"
+      - "traefik.http.routers.semaphore-ssl.rule=Host(`{{ inventory_hostname }}`) && PathPrefix(`/semaphore`)"
+      - "traefik.http.routers.semaphore-ssl.entrypoints=websecure"
+      - "traefik.http.routers.semaphore-ssl.tls=true"
+      - "traefik.http.routers.semaphore-ssl.service=semaphore-ssl"
+      - "traefik.http.routers.semaphore-ssl.tls.certresolver=letsencrypt"
+{% else %}
+      - "traefik.http.services.semaphore.loadbalancer.server.port=3000"
+{% endif %}
+    environment:
+      SEMAPHORE_DB_USER: {{ mariadb_user | default("semaphore", true) }}
+      SEMAPHORE_DB_PASS: {{ mariadb_user_password }}
+      SEMAPHORE_DB_HOST: {{ mariadb_container_name }}
+      SEMAPHORE_DB_PORT: 3306
+      SEMAPHORE_DB_DIALECT: mysql
+      SEMAPHORE_DB: {{ mariadb_dbname | default("semaphore",true) }}
+      SEMAPHORE_PLAYBOOK_PATH: /tmp/semaphore
+      SEMAPHORE_ADMIN_PASSWORD: {{ semaphore_admin_password }}
+      SEMAPHORE_ADMIN_NAME: {{ semaphore_admin_user | default("admin", true) }}
+      SEMAPHORE_ADMIN_EMAIL: {{ semaphore_admin_email | default("admin@localhost", true)}}
+      SEMAPHORE_ADMIN: {{ semaphore_admin_user | default("admin", true) }}
+      SEMAPHORE_ACCESS_KEY_ENCRYPTION: {{
+        lookup(
+          'community.general.random_string',
+          length=32,
+          base64=True
+        )
+      }}
+      SEMAPHORE_WEB_ROOT: /semaphore
+    volumes:
+      - semaphore:/tmp/local_repo
+    depends_on:
+      {{ mariadb_container_name }}:
+        condition: service_healthy
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:3000/api/health
+      interval: 10s
+      retries: 30
+    cpu_shares: 512
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    pids_limit: 50
+    mem_limit: 400m
+    networks:
+      - {{ docker_frontend_network }}
+      - {{ docker_backend_network }}

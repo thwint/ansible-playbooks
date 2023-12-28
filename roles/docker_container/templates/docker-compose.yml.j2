@@ -4,6 +4,15 @@
 {% include 'docker-compose-parts/%s.j2' % container %}
 {% endfor %}
 
+# Volumes
+################################################################################
+{% if container_volumes | length > 0 %}
+volumes:
+{% endif %}
+{% for volume in container_volumes %}
+  {{ volume }}:
+{% endfor %}
+################################################################################
 # Networks
 ################################################################################
 networks:

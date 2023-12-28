@@ -23,6 +23,14 @@
   tags:
     - always
 
+- name: "Include tasks to deploy semaphore container"
+  ansible.builtin.include_tasks: containers/semaphore.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('semaphore')
+  tags:
+    - always
+
 - name: "Cleanup docker images"
   community.docker.docker_prune:
     images: true
