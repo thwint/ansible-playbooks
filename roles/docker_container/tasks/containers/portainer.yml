@@ -20,18 +20,14 @@
     project_name: management
     containers:
       - portainer
-    admin_password: >-
-      "{{ portainer_admin_password
-       | password_hash('bcrypt')
-       | replace('$', '$$') }}"
+    admin_password: "{{ portainer_admin_password | password_hash('bcrypt') | replace('$', '$$') }}" # yamllint disable-line rule:line-length
   tags:
     - portainer
 
 - name: "portainer | Start portainer container" # noqa: no-changed-when
   ansible.builtin.command:
     cmd: >-
-      "docker compose -f
-       {{ docker_data_path }}/dc_management_portainer.yml up -d"
+      docker compose -f {{ docker_data_path }}/dc_management_portainer.yml up -d
     chdir: "{{ docker_data_path }}"
   tags:
     - portainer

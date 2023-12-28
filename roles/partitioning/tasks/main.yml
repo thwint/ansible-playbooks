@@ -14,9 +14,7 @@
         flags: [lvm]
         number: "{{ disk_info.partitions | length + 1 }}"
         label: gpt
-        part_start: >-
-          "{{ disk_info.partitions[disk_info.partitions |
-          length - 1].end + 1 }}MiB"
+        part_start: "{{ disk_info.partitions[disk_info.partitions | length - 1].end + 1 }}MiB" # yamllint disable-line rule:line-length
         state: present
 
     - name: "Create volume group"

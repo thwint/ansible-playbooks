@@ -1,5 +1,5 @@
   portainer:
-    image: portainer/{{ portainer_edition }}:{{ portainer_version | default("latest", true) }}
+    image: portainer/{{ portainer_edition | default("portainer-ce", true) }}:{{ portainer_version | default("latest", true) }}
     command: -H unix:///var/run/docker.sock --admin-password '{{ admin_password }}'
     labels:
       - "traefik.docker.network=frontend"

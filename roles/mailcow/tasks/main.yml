@@ -1,12 +1,22 @@
 ---
+- name: "Stop mailcow" # noqa: no-changed-when
+  become: true
+  ansible.builtin.command:
+    cmd: docker compose down
+    chdir: "{{ mailcow__install_path }}"
+  tags:
+    - mailcow
+
 - name: "Copy docker-compose.override.yml"
   become: true
   ansible.builtin.template:
     src: templates/docker-compose.override.yml.j2
-    dest: "{{ mailcow__install_path }}/docker.compose.override.yml"
+    dest: "{{ mailcow__install_path }}/docker-compose.override.yml"
     owner: "root"
     mode: '0644'
   notify: Restart mailcow
+  tags:
+    - mailcow
 
 - name: "Configure ssl terminated services"
   become: true
@@ -19,5 +29,13 @@
     - {line: IMAPS_PORT=127.0.0.1:993, regexp: "^IMAPS_PORT="}
     - {line: POPS_PORT=127.0.0.1:995, regexp: "^POPS_PORT="}
   notify: Restart mailcow
+  tags:
+    - mailcow
 
-# TODO restart
+- name: "Stop mailcow" # noqa: no-changed-when
+  become: true
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: "{{ mailcow__install_path }}"
+  tags:
+    - mailcow
