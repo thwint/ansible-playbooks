@@ -1,0 +1,37 @@
+---
+- name: "portainer | Generate random passwords for Portainer"
+  ansible.builtin.set_fact:
+    portainer_admin_password: >-
+      "{{ lookup('password',
+       '/dev/null chars=ascii_lowercase,digits length=32') }}"
+    cacheable: true
+  when: >
+    portainer_admin_password is undefined
+  tags:
+    - portainer
+
+- name: "portainer | Add docker-compose.yml for portainer"
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ docker_data_path }}/dc_management_portainer.yml"
+    group: "{{ docker_group }}"
+    mode: '0640'
+  vars:
+    project_name: management
+    containers:
+      - portainer
+    admin_password: >-
+      "{{ portainer_admin_password
+       | password_hash('bcrypt')
+       | replace('$', '$$') }}"
+  tags:
+    - portainer
+
+- name: "portainer | Start portainer container" # noqa: no-changed-when
+  ansible.builtin.command:
+    cmd: >-
+      "docker compose -f
+       {{ docker_data_path }}/dc_management_portainer.yml up -d"
+    chdir: "{{ docker_data_path }}"
+  tags:
+    - portainer

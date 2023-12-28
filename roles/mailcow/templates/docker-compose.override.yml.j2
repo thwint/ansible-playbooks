@@ -9,7 +9,7 @@ services:
     networks:
       web:
       mailcow:
-{% if traefik_ssl_enabled | default(false, true) %}
+{% if ssl_enabled | default(false, true) %}
     labels:
       traefik.enable: "true"
       traefik.tcp.routers.imaps.entrypoints: imaps
@@ -38,7 +38,7 @@ services:
       web:
     labels:
       traefik.enable: "true"
-{% if traefik_ssl_enabled | default(false, true) %}
+{% if ssl_enabled | default(false, true) %}
       traefik.http.routers.moo.rule: >-
 {% for rule in mailcow__traefik_router_rules %}
         Host(`{{ rule }}`) ||
@@ -65,7 +65,7 @@ services:
     networks:
       web:
       mailcow:
-{% if traefik_ssl_enabled | default(false, true) %}
+{% if ssl_enabled | default(false, true) %}
     labels:
       traefik.enable: "true"
       traefik.tcp.routers.smtps.entrypoints: smtps

@@ -1,0 +1,108 @@
+  traefik:
+    image: traefik:{{ traefik_version | default("latest", true) }}
+    hostname: traefik
+    command:
+      - "--log=true"
+      - "--log.filepath=/var/log/traefik/traefik.log"
+      - "--log.level=INFO"
+      - "--api"
+      - "--accessLog=true"
+      - "--accessLog.filepath=/var/log/traefik/access.log"
+      - "--providers.docker"
+      - "--providers.docker.watch"
+      - "--providers.docker.exposedbydefault=false"
+      - "--ping"
+      - "--entrypoints.web.address=:80"
+{% for entrypoint in traefik_entrypoints %}
+      - "--entrypoints.{{ entrypoint.name }}.address=:{{ entrypoint.port }}"
+{% endfor %}
+{% if ssl_enabled | default(false, true) %}
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=websecure"
+      - "--entrypoints.websecure.address=:443"
+{% endif %}
+      - "--experimental.plugins.rewritebody.modulename=github.com/traefik/plugin-rewritebody"
+      - "--experimental.plugins.rewritebody.version=v0.3.1"
+{% if traefik_letsencrypt_enabled | default(false, true) %}
+      - "--certificatesresolvers.letsencrypt.acme.email={{ admin_email }}"
+      - "--certificatesResolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/certificates/acme.json"
+{% endif %}
+{% if prometheus_enabled | default(false, true)  %}
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
+{% endif %}
+    pids_limit: 50
+    mem_limit: 200m
+    cpu_shares: 512
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    read_only: true
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.traefik.rule: Host(`{{ inventory_hostname }}`) && (PathPrefix(`/traefik`) || HeadersRegexp(`Referer`, `.*/traefik/.*`))
+      traefik.http.routers.traefik.middlewares: traefik-strip
+{%- if traefik_basic_auth | default("", true) | length -%}
+    , authtraefik
+{% endif %}
+
+      traefik.http.routers.traefik.service: api@internal
+      traefik.http.middlewares.traefik-strip.stripprefix.prefixes: /traefik
+{% if traefik_basic_auth | default("", true) | length %}
+      # Basic auth
+      traefik.http.middlewares.authtraefik.basicauth.users: {{ traefik_basic_auth }}
+{% endif %}
+      traefik.http.middlewares.crowdsec-bouncer.forwardauth.address: http://crowdsec_bouncer_traefik:8080/api/v1/forwardAuth
+      traefik.http.middlewares.crowdsec-bouncer.forwardauth.trustForwardHeader: true
+{% if ssl_enabled | default(false, true) %}
+      # SSL redirect
+      traefik.http.middlewares.https-redirect.redirectscheme.scheme: https
+      traefik.http.middlewares.https-redirect.redirectscheme.permanent: true
+      traefik.http.routers.traefik.tls.certresolver: letsencrypt
+      traefik.http.routers.traefik.entrypoints: websecure
+{% endif %}
+      # Services
+      traefik.http.services.traefik.loadbalancer.server.port: 8080
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 1m
+      timeout: 10s
+      retries: 10
+      start_period: 1m
+    ports:
+{% if ansible_virtualization_type == 'virtualbox' %}
+      - "0.0.0.0:80:80"
+{% else %}
+      - "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:80:80"
+{% endif %}
+{% if ssl_enabled | default(false, true) %}
+      - "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:443:443"
+{% endif %}
+{% if traefik_entrypoints | length > 0%}
+{% for entrypoint in traefik_entrypoints %}
+      - "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:{{ entrypoint.port }}:{{ entrypoint.port }}"
+{% endfor%}
+{% endif %}
+    extra_hosts:
+      - host.docker.internal:{{ docker_internal_ip }}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log/traefik:/var/log/traefik
+      - traefik_plugins:/plugins-storage
+{% if ssl_enabled | default(false, true) %}
+      - traefik_certificates:/certificates
+{% endif %}
+    networks:
+      - {{ docker_frontend_network }}
+      - {{ docker_backend_network }}
+################################################################################
+# Volumes
+################################################################################
+volumes:
+  traefik_plugins:
+{% if ssl_enabled | default(false, true) %}
+  traefik_certificates:
+{% endif %}
+################################################################################

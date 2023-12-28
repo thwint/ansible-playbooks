@@ -1,0 +1,42 @@
+  portainer:
+    image: portainer/{{ portainer_edition }}:{{ portainer_version | default("latest", true) }}
+    command: -H unix:///var/run/docker.sock --admin-password '{{ admin_password }}'
+    labels:
+      - "traefik.docker.network=frontend"
+      - "traefik.enable=true"
+      # Routers
+      - "traefik.http.routers.portainer.rule=Host(`{{ inventory_hostname }}`) && PathPrefix(`/portainer`)"
+      - "traefik.http.routers.portainer.entrypoints=web"
+{% if ssl_enabled | default(false, true) %}
+      - "traefik.http.routers.portainer.middlewares=https-redirect"
+      - "traefik.http.routers.portainer-ssl.rule=Host(`{{ inventory_hostname }}`) && PathPrefix(`/portainer`)"
+      - "traefik.http.routers.portainer-ssl.entrypoints=websecure"
+      - "traefik.http.routers.portainer-ssl.tls=true"
+      - "traefik.http.routers.portainer-ssl.service=portainer-ssl"
+      - "traefik.http.routers.portainer-ssl.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.portainer-ssl.middlewares=portainer-strip"
+      - "traefik.http.services.portainer-ssl.loadbalancer.server.port=9000"
+{% else %}
+      - "traefik.http.routers.portainer.middlewares=portainer-strip"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+{% endif %}
+      # Middlewares
+      - "traefik.http.middlewares.portainer-strip.stripprefix.prefixes=/portainer"
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    read_only: true
+    cpu_shares: 512
+    pids_limit: 50
+    mem_limit: 200m
+    networks:
+      - {{ docker_frontend_network }}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+################################################################################
+# Volumes
+################################################################################
+volumes:
+  portainer_data:
+################################################################################

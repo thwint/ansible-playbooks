@@ -1,0 +1,44 @@
+---
+- name: "traefik | Create /var/log/traefik directory"
+  become: true
+  ansible.builtin.file:
+    path: "/var/log/traefik"
+    group: "{{ docker_group }}"
+    mode: '02775'
+    state: directory
+  tags:
+    - traefik
+
+- name: "traefik | Add docker-compose.yml for traefik"
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ docker_data_path }}/dc_core_traefik.yml"
+    group: "{{ docker_group }}"
+    mode: '0640'
+  vars:
+    project_name: core
+    containers:
+      - traefik
+  tags:
+    - traefik
+
+- name: "traefik | Start traefik container" # noqa: no-changed-when
+  ansible.builtin.command:
+    cmd: "docker compose -f {{ docker_data_path }}/dc_core_traefik.yml up -d"
+    chdir: "{{ docker_data_path }}"
+  tags:
+    - traefik
+
+- name: "traefik | Add Prometheus scraper traefik"
+  ansible.builtin.blockinfile:
+    marker: "# {mark} ANSIBLE MANAGED BLOCK (traefik)"
+    path: "{{ docker_data_path }}/prometheus/etc/prometheus.yml"
+    block: |2
+        - job_name: traefik
+          metrics_path: /metrics
+          static_configs:
+            - targets: ['traefik:8080']
+  when: prometheus_enabled | default(false)
+  notify: Restart prometheus container
+  tags:
+    - traefik

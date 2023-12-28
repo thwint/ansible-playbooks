@@ -1,6 +1,8 @@
 # Docker container role
 
-This role is used to set up and configure multiple docker containers.
+This role is used to set up and configure multiple docker containers. It is only
+to set up simple containers. For more complex container setup a separate role
+should be created.
 
 List of available containers:
 
@@ -17,6 +19,11 @@ List of available containers:
 
 This role also uses variables from [base](base.md) and [docker_daemon](docker_daemon.md).
 Check these documentations for further information.
+
+| name               | purpose                                  | default value | remark |
+| ------------------ | ---------------------------------------- | ------------- | ------ |
+| prometheus_enabled | Enable prometheus and configure scraping | false         |        |
+| ssl_enabled        | Whether SSL/TLS is enabled               | false         |        |
 
 ## Adminer
 
@@ -60,7 +67,7 @@ configured using traefik.
 ## Portainer
 
 Creates and starts a portainer container listening on `{{ inventory_hostname }}/portainer`.
-If `traefik_ssl_enabled` is set to `true` the connection is ssl terminated.
+If `ssl_enabled` is set to `true` the connection is ssl terminated.
 
 ### Portainer variables
 
@@ -86,5 +93,4 @@ If `traefik_ssl_enabled` is set to `true` the connection is ssl terminated.
 | traefik_basic_auth          | The basic auth configuraiton for traefik | ''            |        |
 | traefik_entrypoints         | The entrypoints to be activated          | n/a           |        |
 | traefik_letsencrypt_enabled | Whether to use letsencrypt or not        | false         |        |
-| traefik_ssl_enabled         | Whether SSL/TLS is enabled               | false         |        |
 | traefik_version             | The version of traefik to be used        | latest        |        |

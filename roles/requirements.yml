@@ -1,0 +1,5 @@
+---
+- src: https://github.com/mailcow/mailcow-ansiblerole.git
+  scm: git
+  version: master
+  name: mailcow.mailcow

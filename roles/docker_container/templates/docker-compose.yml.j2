@@ -1,0 +1,14 @@
+{% include 'docker-compose-parts/header.j2' %}
+{% for container in containers %}
+
+{% include 'docker-compose-parts/%s.j2' % container %}
+{% endfor %}
+
+# Networks
+################################################################################
+networks:
+  {{ docker_frontend_network }}:
+    external: true
+  {{ docker_backend_network }}:
+    external: true
+################################################################################

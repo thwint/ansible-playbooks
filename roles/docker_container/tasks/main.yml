@@ -1,0 +1,30 @@
+---
+- name: "Include tasks to deploy traefik container"
+  ansible.builtin.include_tasks: containers/traefik.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('traefik')
+  tags:
+    - always
+
+- name: "Include tasks to deploy adminer container"
+  ansible.builtin.include_tasks: containers/adminer.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('adminer')
+  tags:
+    - always
+
+- name: "Include tasks to deploy portainer container"
+  ansible.builtin.include_tasks: containers/portainer.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('portainer')
+  tags:
+    - always
+
+- name: "Cleanup docker images"
+  community.docker.docker_prune:
+    images: true
+  tags:
+    - always

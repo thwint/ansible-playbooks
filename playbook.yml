@@ -1,0 +1,24 @@
+---
+# Common configuration for all nodes. Usually to set up users, install common
+# packages or common system configuration.
+- name: "Common configuration"
+  hosts: all
+  pre_tasks:
+    - name: "Include variables"
+      tags: always
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+      with_fileglob:
+        # Items are reversed because newer variables overwrite old ones in
+        # ansible.
+        - "vars/4_default.yml"
+        - "vars/3_versions.yml"
+        - "vars/2_site.yml"
+        - "vars/1_host/{{ ansible_fqdn }}.yml"
+        - "vars/custom.yml"
+- name: "Include base playbook"
+  ansible.builtin.import_playbook: base.yml
+- name: "Include docker daemon playbook"
+  ansible.builtin.import_playbook: docker_daemon.yml
+- name: "Include hardening playbook"
+  ansible.builtin.import_playbook: hardening.yml

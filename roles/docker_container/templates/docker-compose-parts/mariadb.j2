@@ -1,0 +1,51 @@
+  {{ mariadb_container_name }}:
+    image: mariadb:{{ mariadb_version | default("latest", true) }}
+    hostname: {{ mariadb_container_name }}
+    command: mysqld --character-set-server=utf8 --collation-server=utf8_unicode_ci --innodb-flush-log-at-trx-commit=0
+    environment:
+      TZ: {{ timezone }}
+      MARIADB_ROOT_PASSWORD: {{ mariadb_root_password }}
+      MARIADB_USER: {{ mariadb_user }}
+      MARIADB_PASSWORD: {{ mariadb_user_password }}
+      MARIADB_DATABASE: {{ mariadb_dbname }}
+      MARIADB_AUTO_UPGRADE: true
+      MARIADB_DISABLE_UPGRADE_BACKUP: true
+    volumes:
+      - {{ mariadb_data_path }}:/var/lib/mysql
+      - /tmp # required because of read-only root
+      - /run # required because of read-only root
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "--user={{ mariadb_user }}", "--password={{ mariadb_user_password }}" ]
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    read_only: true
+    cpu_shares: {{ mariadb_cpu_shares | default(512, true) }}
+    pids_limit: {{ mariadb_pids_limit | default(30, true) }}
+    mem_limit: {{ mariadb_mem_limit | default('100m', true) }}
+    networks:
+      - {{ docker_backend_network }}
+{% if prometheus_enabled | default(false, true) %}
+################################################################################
+  {{ mariadb_container_name }}-exporter:
+    image: prom/mysqld-exporter:v0.14.0
+    command:
+     - --collect.info_schema.tablestats
+    hostname: {{ mariadb_container_name }}-exporter
+    environment:
+      - DATA_SOURCE_NAME=root:{{ mariadb_root_password }}@({{ mariadb_container_name }}:3306)/{{ mariadb_dbname }}
+    depends_on:
+      - {{ mariadb_container_name }}
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:9104/metrics
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    read_only: true
+    cpu_shares: 512
+    pids_limit: 30
+    mem_limit: 100m
+    networks:
+      - {{ docker_backend_network }}
+{% endif %}
+################################################################################

@@ -1,0 +1,24 @@
+---
+- name: "adminer | Add docker-compose.yml adminer"
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ item }}"
+    group: "{{ docker_group }}"
+    mode: '0640'
+  with_items:
+    - "{{ docker_data_path }}/dc_management_adminer.yml"
+  vars:
+    project_name: management
+    containers:
+      - adminer
+  tags:
+    - adminer
+
+- name: "adminer | Start adminer container" # noqa: no-changed-when
+  ansible.builtin.command:
+    cmd: >-
+      "docker compose -f
+       {{ docker_data_path }}/dc_management_adminer.yml up -d"
+    chdir: "{{ docker_data_path }}"
+  tags:
+    - adminer
