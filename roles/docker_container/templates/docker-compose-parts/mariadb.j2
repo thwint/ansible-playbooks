@@ -1,7 +1,7 @@
   {{ mariadb_container_name }}:
     image: mariadb:{{ mariadb_version | default("latest", true) }}
     hostname: {{ mariadb_container_name }}
-    command: mysqld --character-set-server=utf8 --collation-server=utf8_unicode_ci --innodb-flush-log-at-trx-commit=0
+    command: mariadbd --character-set-server=utf8 --collation-server=utf8_unicode_ci --innodb-flush-log-at-trx-commit=0
     environment:
       TZ: {{ timezone }}
       MARIADB_ROOT_PASSWORD: {{ mariadb_root_password }}
@@ -15,7 +15,7 @@
       - /tmp # required because of read-only root
       - /run # required because of read-only root
     healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "--user={{ mariadb_user }}", "--password={{ mariadb_user_password }}" ]
+      test: ["CMD", "mariadb-admin" ,"ping", "-h", "localhost", "--user={{ mariadb_user }}", "--password={{ mariadb_user_password }}" ]
     restart: on-failure:5
     security_opt:
       - no-new-privileges

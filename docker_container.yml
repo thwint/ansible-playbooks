@@ -1,0 +1,11 @@
+---
+- name: Docker container setup
+  hosts: all
+  vars_files:
+    - "vars/4_default.yml"
+    - "vars/3_versions.yml"
+    - "vars/2_site.yml"
+    - "vars/1_host/{{ ansible_fqdn }}.yml"
+    - "vars/custom.yml"
+  roles:
+    - docker_container
