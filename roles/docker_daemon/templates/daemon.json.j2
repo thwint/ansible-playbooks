@@ -1,0 +1,18 @@
+{
+  "bridge": "none",
+  "default-address-pools": [
+    {
+      "base": "{{ docker_pool_base }}",
+      "size": 24
+    }
+  ],
+  "icc": false,
+  "live-restore": true,
+  "log-opts": {
+    "max-size": "20m",
+    "max-file": "10",
+    "mode": "non-blocking"
+  },
+  "no-new-privileges": true,
+  "userland-proxy": false
+}

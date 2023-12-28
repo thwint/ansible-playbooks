@@ -1,0 +1,49 @@
+---
+- name: "Restart auditd"
+  become: true
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+
+- name: "Restart sshd"
+  become: true
+  ansible.builtin.service:
+    name: sshd
+    state: restarted
+
+- name: "Restart journald"
+  become: true
+  ansible.builtin.service:
+    name: systemd-journald
+    state: restarted
+
+- name: "Run aideinit"
+  become: true
+  ansible.builtin.command: /usr/sbin/aideinit
+  register: aide_initialized
+  changed_when: aide_initialized.changed
+  listen: "Initialize AIDE"
+- name: "Copy new db"
+  become: true
+  ansible.builtin.copy:
+    remote_src: true
+    src: /var/lib/aide/aide.db.new
+    dest: /var/lib/aide/aide.db
+    owner: root
+    group: root
+    mode: '0600'
+  listen: "Initialize AIDE"
+  when: not aide_initialized.failed
+- name: "Run aide check"
+  become: true
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/aide
+      - --check
+      - --config
+      - /etc/aide/aide.conf
+  listen: "Initialize AIDE"
+  register: aide_checked
+  changed_when: aide_checked.rc < 8
+  failed_when: aide_checked.rc > 7
+  when: not aide_initialized.failed

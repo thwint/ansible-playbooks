@@ -1,6 +1,7 @@
 # Mailcow role
 
-This role is used to install and configure [Mailcow Dockerized](https://github.com/mailcow/mailcow-dockerized)
+This role is used to install and configure
+[Mailcow Dockerized](https://github.com/mailcow/mailcow-dockerized)
 
 Most of the configuration for mailcow can be found here:
 <https://github.com/mailcow/mailcow-ansiblerole>

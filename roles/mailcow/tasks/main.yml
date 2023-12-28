@@ -1,0 +1,23 @@
+---
+- name: "Copy docker-compose.override.yml"
+  become: true
+  ansible.builtin.template:
+    src: templates/docker-compose.override.yml.j2
+    dest: "{{ mailcow__install_path }}/docker.compose.override.yml"
+    owner: "root"
+    mode: '0644'
+  notify: Restart mailcow
+
+- name: "Configure ssl terminated services"
+  become: true
+  ansible.builtin.lineinfile:
+    line: "{{ item.line }}"
+    dest: "{{ mailcow__install_path }}/mailcow.conf"
+    regexp: "{{ item.regexp }}"
+  with_items:
+    - {line: SMTPS_PORT=127.0.0.1:465, regexp: "^SMTPS_PORT="}
+    - {line: IMAPS_PORT=127.0.0.1:993, regexp: "^IMAPS_PORT="}
+    - {line: POPS_PORT=127.0.0.1:995, regexp: "^POPS_PORT="}
+  notify: Restart mailcow
+
+# TODO restart

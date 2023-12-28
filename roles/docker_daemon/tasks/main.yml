@@ -1,0 +1,106 @@
+---
+- name: "Create docker group"
+  become: true
+  ansible.builtin.group:
+    name: docker
+    state: present
+    gid: 990
+  tags:
+    - docker
+
+- name: "Add Docker GPG apt Key"
+  become: true
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/trusted.gpg.d/docker-ubuntu-keyring.asc
+    mode: '0644'
+    force: true
+  tags:
+    - docker
+
+- name: "Add Docker Repository"
+  become: true
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch=amd64,
+      signed-by=/etc/apt/trusted.gpg.d/docker-ubuntu-keyring.asc]
+      https://download.docker.com/linux/ubuntu jammy
+      stable
+    state: present
+  tags:
+    - docker
+
+- name: "Update apt and install docker-ce"
+  become: true
+  ansible.builtin.package:
+    name:
+      - docker-ce
+      - docker-compose-plugin
+      - python3-docker
+      - python3-passlib
+      - python3-pip
+    update_cache: true
+    state: present
+  tags:
+    - docker
+
+- name: "Add users to group docker"
+  become: true
+  ansible.builtin.user:
+    name: '{{ item.username }}'
+    groups: "{{ docker_group }}"
+    append: true
+  when: 'item.use_docker'
+  with_items: '{{ users }}'
+  tags:
+    - docker
+
+- name: "Docker daemon hardening"
+  become: true
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    backup: true
+    mode: '0644'
+  notify:
+    - Restart docker
+  tags:
+    - docker
+
+- name: "Flush handlers to ensure docker is restarted before continuing"
+  ansible.builtin.meta: flush_handlers
+
+- name: "Reset the ssh connection"
+  ansible.builtin.meta: reset_connection
+
+- name: "Create docker networks"
+  community.docker.docker_network:
+    name: "{{ item }}"
+    driver_options:
+      com.docker.network.bridge.name: "{{ item }}"
+  with_items:
+    - "{{ docker_frontend_network }}"
+    - "{{ docker_backend_network }}"
+
+- name: "Ensure permissions on {{ docker_data_path }}"
+  become: true
+  ansible.builtin.file:
+    path: "{{ docker_data_path }}"
+    group: "{{ docker_group }}"
+    mode: '02775'
+    state: directory
+  tags:
+    - always
+
+- name: "Docker bash aliases"
+  ansible.builtin.blockinfile:
+    marker: "# {mark} ANSIBLE_MANAGED_BLOCK (docker aliases)"
+    path: /home/{{ item.username }}/.bash_aliases
+    create: true
+    block: >-
+      alias dps='docker ps --format="table {{ '{{' }}.Names}}
+      \t{{ '{{' }}.Status}}\t{{ '{{' }}.Image}}"'
+    mode: '0644'
+  with_items: '{{ users }}'
+  tags:
+    - docker

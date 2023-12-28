@@ -1,0 +1,191 @@
+---
+- name: "Base | Mount /tmp"
+  become: true
+  ansible.posix.mount:
+    src: tmpfs
+    path: /tmp
+    opts: defaults,rw,nosuid,nodev,noexec,relatime,size=500m
+    state: mounted
+    fstype: tmpfs
+
+- name: "Base | Set default locale"
+  become: true
+  ansible.builtin.lineinfile:
+    dest: /etc/default/locale
+    regexp: "^LANG="
+    line: "LANG={{ default_locale }}"
+  notify: "Reconfigure locales"
+
+- name: "Base | Update outdated packages"
+  become: true
+  ansible.builtin.apt:
+    upgrade: 'yes'
+    update_cache: true
+    cache_valid_time: 86400
+  tags:
+    - always
+
+- name: "Base | Install base packages"
+  become: true
+  ansible.builtin.package:
+    name:
+      - gpm
+      - jq
+      - net-tools
+      - openssh-server
+      - pipx
+      - python-is-python3
+      - sqlite3
+      - sshpass
+      - vim
+  tags:
+    - always
+
+- name: "Base | Add users"
+  become: true
+  ansible.builtin.user:
+    name: "{{ item.username }}"
+    shell: /bin/bash
+  when: 'item.create_user'
+  with_items: '{{ users }}'
+
+- name: "Base | Create .ssh folder"
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.homedir }}/.ssh"
+    state: directory
+    mode: '0755'
+  with_items: '{{ users }}'
+  tags:
+    - base
+    - user
+
+- name: "Base | Add authorized key"
+  become: true
+  ansible.posix.authorized_key:
+    user: "{{ item.username }}"
+    state: present
+    key: "{{ item.public_keys | join(\"\n\")  }}"
+    path: "{{ item.homedir }}/.ssh/authorized_keys"
+    manage_dir: false
+  with_items: '{{ users }}'
+  tags:
+    - base
+    - user
+
+- name: "Base | Add bitbucket read only key"
+  become: true
+  ansible.builtin.copy:
+    src: files/ssh/{{ openhab.config.repo.key }}
+    dest: "/home/{{ item.username }}/.ssh"
+    owner: "{{ item.username }}"
+    mode: '0600'
+  with_items: '{{ users }}'
+  tags:
+    - user
+
+- name: "Base | Configure bitbucket key"
+  become: true
+  ansible.builtin.blockinfile:
+    marker: "# {mark} ANSIBLE MANAGED BLOCK (bitbucket.org)"
+    path: "/home/{{ item.username }}/.ssh/config"
+    block: |
+      Host bitbucket.org
+        HostName bitbucket.org
+        User git
+        IdentityFile ~/.ssh/{{ openhab.config.repo.key }}
+    owner: "{{ item.username }}"
+    mode: '0644'
+    create: true
+  with_items: '{{ users }}'
+  tags:
+    - base
+
+- name: "Base | Add users to sudo group"
+  become: true
+  ansible.builtin.user:
+    name: "{{ item.username }}"
+    groups: sudo
+    append: true
+  when: 'item.use_sudo'
+  with_items: '{{ users }}'
+  tags:
+    - base
+
+- name: "Base | Allow sudo for user"
+  become: true
+  vars:
+    file_content: |
+      {{ item.username }} ALL=(ALL) ALL
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ item.username }}"
+    content: "{{ file_content }}"
+    mode: '0644'
+  when: 'item.use_sudo'
+  with_items: '{{ users }}'
+  tags:
+    - base
+
+- name: "Base | Configure sourcing of bashrc.d"
+  become: true
+  ansible.builtin.blockinfile:
+    marker: "# {mark} ANSIBLE MANAGED BLOCK (bashrc.d)"
+    path: "/home/{{ item.username }}/.bashrc"
+    block: |
+      if [ -d ~/.bashrc.d ]; then
+        for f in ~/.bashrc.d/*.sh;
+        do
+          source "${f}"
+        done
+      fi
+    owner: "{{ item.username }}"
+    mode: '0644'
+    create: true
+  with_items: '{{ users }}'
+  tags:
+    - base
+
+- name: "Base | Common bash aliases"
+  become: true
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/profile.d/{{ item | basename }}"
+    owner: root
+    group: root
+    mode: '0644'
+  with_fileglob:
+    - files/profile.d/*.sh
+
+- name: "Base | User bash aliases"
+  ansible.builtin.blockinfile:
+    marker: "# {mark} ANSIBLE_MANAGED_BLOCK (common aliases)"
+    path: /home/{{ item.username }}/.bash_aliases
+    create: true
+    block: |
+      alias upd='sudo apt update'
+      alias upg='sudo apt upgrade'
+      alias ip='ip --color'
+      alias dna='dig +noall +answer'
+      alias wifioff='sudo nmcli radio wifi off'
+      alias wifion='sudo nmcli radio wifi on'
+    mode: '0644'
+  with_items: '{{ users }}'
+  tags:
+    - base
+
+- name: "Base | Set timezone to {{ timezone }}"
+  become: true
+  community.general.timezone:
+    name: "{{ timezone }}"
+  tags:
+    - base
+
+- name: "Base | Ensure configured locales exist"
+  become: true
+  community.general.locale_gen:
+    name: "{{ item }}"
+    state: present
+  with_items: '{{ locales }}'
+  notify: "Reconfigure locales"
+  tags:
+    - base

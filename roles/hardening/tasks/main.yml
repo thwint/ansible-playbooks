@@ -1,0 +1,8 @@
+---
+- name: "Include tasks to for Ubunbtu hardening"
+  ansible.builtin.include_tasks: ubuntu_hardening.yml
+  when: hardening_ubuntu
+
+- name: "Include tasks for docker hardening"
+  ansible.builtin.include_tasks: docker_hardening.yml
+  when: hardening_docker

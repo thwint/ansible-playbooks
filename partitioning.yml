@@ -1,0 +1,16 @@
+---
+- name: Create partitions
+  hosts: all
+  vars:
+    ansible_user: root
+  vars_prompt:
+    - name: "ansible_password"
+      prompt: "Root password for rescue system"
+  vars_files:
+    - "vars/4_default.yml"
+    - "vars/3_versions.yml"
+    - "vars/2_site.yml"
+    - "vars/1_host/{{ ansible_fqdn }}.yml"
+    - "vars/custom.yml"
+  roles:
+    - partitioning
