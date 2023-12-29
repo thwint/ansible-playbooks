@@ -43,12 +43,12 @@ docker containers. For further information see the corresponding documentation.
 
 | name                    | documentation                           |
 | ----------------------- | --------------------------------------- |
-| docker_backend_network  | [Docker daemon](docker_daemon.md) |
-| docker_data_path        | [Docker daemon](docker_daemon.md) |
-| docker_frontend_network | [Docker daemon](docker_daemon.md) |
-| docker_group            | [Docker daemon](docker_daemon.md) |
-| docker_internal_ip      | [Docker daemon](docker_daemon.md) |
-| timezone                | [Base](base.md)                   |
+| docker_backend_network  | [Docker daemon](roles/docker_daemon.md) |
+| docker_data_path        | [Docker daemon](roles/docker_daemon.md) |
+| docker_frontend_network | [Docker daemon](roles/docker_daemon.md) |
+| docker_group            | [Docker daemon](roles/docker_daemon.md) |
+| docker_internal_ip      | [Docker daemon](roles/docker_daemon.md) |
+| timezone                | [Base](roles/base.md)                   |
 
 This role also uses variables from [base](base.md) and [docker_daemon](docker_daemon.md).
 Check these documentations for further information.

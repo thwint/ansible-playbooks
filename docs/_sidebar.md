@@ -7,8 +7,6 @@
     - [MariaDB](roles/docker_container/mariadb.md)
     - [Nextcloud](roles/docker_container/nextcloud.md)
     - [Portainer](roles/docker_container/portainer.md)
-    - [Powerdns](roles/docker_container/powerdns.md)
-    - [PowerdnsAdmin](roles/docker_container/powerdns_admin.md)
     - [Redis](roles/docker_container/redis.md)
     - [Traefik](roles/docker_container/traefik.md)
   - [Docker daemon](roles/docker_daemon.md)
