@@ -19,6 +19,9 @@
     project_name: core
     containers:
       - traefik
+    container_volumes:
+      - traefik_plugins
+      - traefik_certificates
   tags:
     - traefik
 

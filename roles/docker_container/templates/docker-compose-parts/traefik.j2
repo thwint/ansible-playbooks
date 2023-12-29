@@ -1,3 +1,4 @@
+################################################################################
   traefik:
     image: traefik:{{ traefik_version | default("latest", true) }}
     hostname: traefik
@@ -97,12 +98,3 @@
     networks:
       - {{ docker_frontend_network }}
       - {{ docker_backend_network }}
-################################################################################
-# Volumes
-################################################################################
-volumes:
-  traefik_plugins:
-{% if ssl_enabled | default(false, true) %}
-  traefik_certificates:
-{% endif %}
-################################################################################

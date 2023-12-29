@@ -22,3 +22,7 @@
   ansible.builtin.import_playbook: docker_daemon.yml
 - name: "Include hardening playbook"
   ansible.builtin.import_playbook: hardening.yml
+- name: "Include docker container playbook"
+  ansible.builtin.import_playbook: docker_container.yml
+- name: "Include mailcow playbook"
+  ansible.builtin.import_playbook: mailcow.yml

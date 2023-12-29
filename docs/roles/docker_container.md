@@ -43,12 +43,42 @@ configured using traefik.
 | name | purpose | default value | remark |
 | ---- | ------- | ------------- | ------ |
 
+## MariaDB
+
+### MariaDB variables
+
+| name                   | purpose                                    | default value | remark                         |
+| ---------------------- | ------------------------------------------ | ------------- | ------------------------------ |
+| mariadb_container_name | The name of the mariadb container          |               | Should be configured in a task |
+| mariadb_cpu_shares     | The limit of cpu shares allowd to use      | 512           |                                |
+| mariadb_data_path      | The directory/volume to store mariadb data |               | Should be configured in a task |
+| mariadb_mem_limit      | The limit of memory allowd to use          | 100m          |                                |
+| mariadb_pids_limit     | The limit of pids allowd to use            | 30            |                                |
+| mariadb_root_password  | The database root password                 |               | Should be configured in a task |
+| mariadb_user_password  | The database user password                 |               | Should be configured in a task |
+| mariadb_version        | The version of the mariadb image           | latest        |                                |
+
 ## Netvoot.xyz
 
 ### Netvoot.xyz variables
 
 | name | purpose | default value | remark |
 | ---- | ------- | ------------- | ------ |
+
+## Nextcloud
+
+### Nextcloud variables
+
+| name                            | purpose                                             | default value | remark             |
+| ------------------------------- | --------------------------------------------------- | ------------- | ------------------ |
+| nextcloud_mariadb_root_password | The root password for the database                  |               |                    |
+| nextcloud_mariadb_user          | The database user                                   | nextcloud     |                    |
+| nextcloud_mariadb_user_password | The database password                               |               |                    |
+| nextcloud_project_name          | The docker compose project name                     | nextcloud     |                    |
+| nextcloud_redis_password        | The redis passwod                                   |               |                    |
+| nextcloud_traefik_router_rules  | The Traefik router rules where nextcloud listens on |               | Must be configured |
+| nextcloud_version               | The version of nextcloud to be used                 | latest        |                    |
+| nextcloud_mariadb_dbname        | The database name                                   | nextclouddb   |                    |
 
 ## Openhab
 
@@ -77,12 +107,37 @@ If `ssl_enabled` is set to `true` the connection is ssl terminated.
 | portainer_edition        | The edition of portainer (ce/ee) to be used | portainer-ce  |                                    |
 | portainer_version        | The version of portainer to be used         | latest        |                                    |
 
+## Powerdns
+
+### Powerdns variables
+
+| name | purpose | default value | remark |
+| ---- | ------- | ------------- | ------ |
+
+## PowerdnsAdmin
+
+### PowerdnsAdmin variables
+
+| name | purpose | default value | remark |
+| ---- | ------- | ------------- | ------ |
+
 ## Prometheus
 
 ### Prometheus variables
 
 | name | purpose | default value | remark |
 | ---- | ------- | ------------- | ------ |
+
+## Redis
+
+### Redis variables
+
+| name                 | purpose                                  | default value | remark                         |
+| -------------------- | ---------------------------------------- | ------------- | ------------------------------ |
+| redis_container_name | The name of the redis container          |               | Should be configured in a task |
+| redis_data_path      | The directory/volume to store redis data |               | Should be configured in a task |
+| redis_password       | The password to access redis             |               | Should be configured in a task |
+| redis_version        | The version of the redis image           | latest        |                                |
 
 ## Semaphore
 

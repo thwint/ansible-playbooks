@@ -4,9 +4,10 @@
 {% include 'docker-compose-parts/%s.j2' % container %}
 {% endfor %}
 
+{% if container_volumes is defined and container_volumes | length > 0 %}
+################################################################################
 # Volumes
 ################################################################################
-{% if container_volumes is defined and container_volumes | length > 0 %}
 volumes:
 {% for volume in container_volumes %}
   {{ volume }}:

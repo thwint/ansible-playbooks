@@ -20,6 +20,8 @@
     project_name: management
     containers:
       - portainer
+    container_volumes:
+      - portainer_data
     admin_password: "{{ portainer_admin_password | password_hash('bcrypt') | replace('$', '$$') }}" # yamllint disable-line rule:line-length
   tags:
     - portainer

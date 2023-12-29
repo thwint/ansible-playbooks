@@ -1,0 +1,31 @@
+################################################################################
+  {{ redis_container_name }}:
+    image: redis:{{ redis_version | default("latest", true) }}
+    hostname: {{ redis_container_name }}
+    command: [
+      "/bin/sh", "-c",
+      '/usr/local/bin/docker-entrypoint.sh --requirepass "{{ redis_password }}"'
+    ]
+    environment:
+      REDIS_PASSWORD: {{ redis_password }}
+    labels:
+      traefik.enable: "false"
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/redis-cli", "-a", "{{ redis_password }}", "ping"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 1m
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    sysctls:
+      - net.core.somaxconn=4096
+    read_only: true
+    cpu_shares: 512
+    pids_limit: 50
+    mem_limit: 200m
+    networks:
+      - {{ docker_backend_network }}
+    volumes:
+      - {{ redis_data_path }}:/data

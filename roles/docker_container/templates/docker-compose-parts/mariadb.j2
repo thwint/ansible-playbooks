@@ -1,3 +1,4 @@
+################################################################################
   {{ mariadb_container_name }}:
     image: mariadb:{{ mariadb_version | default("latest", true) }}
     hostname: {{ mariadb_container_name }}
@@ -48,4 +49,3 @@
     networks:
       - {{ docker_backend_network }}
 {% endif %}
-################################################################################

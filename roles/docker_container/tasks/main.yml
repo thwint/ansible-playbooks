@@ -15,6 +15,14 @@
   tags:
     - always
 
+- name: "Include tasks to deploy nextcloud container"
+  ansible.builtin.include_tasks: containers/nextcloud.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('nextcloud')
+  tags:
+    - always
+
 - name: "Include tasks to deploy portainer container"
   ansible.builtin.include_tasks: containers/portainer.yml
   when: >-

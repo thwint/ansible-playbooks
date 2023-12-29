@@ -1,0 +1,104 @@
+################################################################################
+  cloud-nextcloud:
+    image: nextcloud:{{ nextcloud_version | default("latest", true) }}
+    environment:
+      TZ: {{ timezone }}
+      MYSQL_DATABASE: {{ mariadb_dbname }}
+      MYSQL_USER: {{ mariadb_user }}
+      MYSQL_PASSWORD: {{ nextcloud_mariadb_user_password }}
+      MYSQL_HOST: {{ mariadb_container_name }}
+      NEXTCLOUD_TRUSTED_DOMAINS: {{ nextcloud_traefik_router_rules | join(" ") }}
+      REDIS_HOST: {{ redis_container_name }}
+      REDIS_HOST_PASSWORD: {{ nextcloud_redis_password }}
+      SMTP_HOST: {{ smtp_host }}
+      SMTP_PORT: 465
+      #SMTP_NAME:
+      #SMTP_PASSWORD:
+      #MAIL_FROM_ADDRESS:
+      #MAIL_DOMAIN:
+      TRUSTED_PROXIES: 172.16.0.0/12
+      OVERWRITEPROTOCOL: https
+      NC_default_phone_region: CH
+    labels:
+      traefik.docker.network: {{ docker_frontend_network }}
+      traefik.enable: "true"
+      # Routers
+      traefik.http.routers.nextcloud.rule: >-
+{% for rule in nextcloud_traefik_router_rules %}
+        Host(`{{ rule }}`) {{ "||" if not loop.last else "" }}
+{% endfor %}
+      traefik.http.routers.nextcloud.entrypoints: web
+      traefik.http.routers.nextcloud.middlewares: https-redirect
+      traefik.http.routers.nextcloud-ssl.rule: >-
+{% for rule in nextcloud_traefik_router_rules %}
+        Host(`{{ rule }}`) {{ "||" if not loop.last else "" }}
+{% endfor %}
+      traefik.http.routers.nextcloud-ssl.entrypoints: websecure
+      traefik.http.routers.nextcloud-ssl.middlewares: nextcloud-service-discovery,nextcloud-headers
+      traefik.http.routers.nextcloud-ssl.tls: true
+      traefik.http.routers.nextcloud-ssl.tls.certresolver: letsencrypt
+      # Middlewares
+      traefik.http.middlewares.nextcloud-service-discovery.redirectregex.regex: https://(.*)/.well-known/(card|cal)dav
+      traefik.http.middlewares.nextcloud-service-discovery.redirectregex.replacement: https://$$1/remote.php/dav/
+      traefik.http.middlewares.nextcloud-service-discovery.redirectregex.permanent: true
+      traefik.http.middlewares.nextcloud-headers.headers.customFrameOptionsValue: SAMEORIGIN
+      traefik.http.middlewares.nextcloud-headers.headers.frameDeny: true
+      traefik.http.middlewares.nextcloud-headers.headers.forceSTSHeader: true
+      traefik.http.middlewares.nextcloud-headers.headers.contentTypeNosniff: true
+      traefik.http.middlewares.nextcloud-headers.headers.STSSeconds: 15552000
+      traefik.http.middlewares.nextcloud-headers.headers.STSIncludeSubdomains: true
+      traefik.http.middlewares.nextcloud-headers.headers.STSPreload: true
+      traefik.http.middlewares.nextcloud-headers.headers.browserXSSFilter: true
+      traefik.http.middlewares.nextcloud-headers.headers.referrerPolicy: no-referrer
+      #traefik.http.middlewares.nextcloud-headers.headers.SSLProxyHeaders: X-Forwarded-For:185.16.61.23||X-Real-IP:185.16.61.23||X-Forwarded-Host:cloud.winterhader.ch||X-Forwarded-Proto:https
+      # Services
+      traefik.http.services.nextcloud-ssl.loadbalancer.server.port: 80
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 1m
+      timeout: 10s
+      retries: 10
+      start_period: 1m
+    depends_on:
+      {{ mariadb_container_name }}:
+        condition: "service_healthy"
+      {{ redis_container_name }}:
+        condition: "service_healthy"
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    cpu_shares: 1024
+    pids_limit: 200
+    mem_limit: 2g
+    networks:
+      - {{ docker_frontend_network }}
+      - {{ docker_backend_network }}
+    volumes:
+      - {{ nextcloud_data_path | split(' ') | join }}:/var/www/html/data
+      - cloud-html:/var/www/html
+      - cloud-config:/var/www/html/config
+      - cloud-apps:/var/www/html/apps
+      - cloud-custom-apps:/var/www/html/custom_apps
+################################################################################
+  cloud-cron:
+    image: nextcloud:{{ nextcloud_version | default("latest", true) }}
+    entrypoint: /cron.sh
+    depends_on:
+      {{ mariadb_container_name }}:
+        condition: "service_healthy"
+      {{ redis_container_name }}:
+        condition: "service_healthy"
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    cpu_shares: 512
+    pids_limit: 10
+    mem_limit: 100m
+    networks:
+      - {{ docker_backend_network }}
+    volumes:
+      - {{ nextcloud_data_path | split(' ') | join }}:/var/www/html/data
+      - cloud-html:/var/www/html
+      - cloud-config:/var/www/html/config
+      - cloud-apps:/var/www/html/apps
+      - cloud-custom-apps:/var/www/html/custom_apps

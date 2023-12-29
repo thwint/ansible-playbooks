@@ -1,0 +1,54 @@
+---
+- name: "nextcloud | Add docker-compose.yml nextcloud"
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ docker_data_path }}/dc_{{ item }}.yml"
+    group: "{{ docker_group }}"
+    mode: '0640'
+  with_items:
+    - "{{ nextcloud_project_name }}_cloud"
+  vars:
+    project_name: "{{ nextcloud_project_name }}"
+    containers:
+      - nextcloud # includes cron
+      - mariadb
+      - redis
+    container_volumes:
+      - "{{ mariadb_container_name }}"
+      - "{{ redis_container_name }}"
+      - cloud-html
+      - cloud-config
+      - cloud-apps
+      - cloud-custom-apps
+    nextcloud_data_path: >-
+       {{ docker_data_path }}/
+       {{ nextcloud_project_name }}_cloud
+       /data
+    mariadb_user: "{{ nextcloud_mariadb_user | default('nextcloud', true) }}"
+    mariadb_container_name: "cloud-mariadb"
+    mariadb_dbname: >-
+      "{{ nextcloud_mariadb_dbname | default('nextclouddb', true) }}"
+    mariadb_user_password: "{{ nextcloud_mariadb_user_password }}"
+    mariadb_root_password: "{{ nextcloud_mariadb_root_password }}"
+    mariadb_mem_limit: 400m
+    mariadb_data_path: "{{ mariadb_container_name }}"
+    redis_container_name: "cloud-redis"
+    redis_password: "{{ nextcloud_redis_password }}"
+    redis_data_path: "{{ redis_container_name }}"
+  tags:
+    - nextcloud
+
+- name: "nextcloud | Start nextcloud container" # noqa: no-changed-when
+  ansible.builtin.command:
+    cmd: "docker compose -f \
+      {{ filename.split(' ') | join }} \
+      up -d"
+    chdir: "{{ docker_data_path }}"
+  vars:
+    filename: >-
+      {{ docker_data_path }}/dc_
+      {{ nextcloud_project_name }}_
+      cloud.yml
+
+  tags:
+    - nextcloud
