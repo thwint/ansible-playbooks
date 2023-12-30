@@ -1,0 +1,64 @@
+################################################################################
+  powerdns:
+    image: thwint/powerdns:latest
+    hostname: powerdns
+    environment:
+      PDNS_LAUNCH: gmysql
+      PDNS_GMYSQL_HOST: {{ mariadb_container_name }}
+      PDNS_GMYSQL_PORT: 3306
+      PDNS_GMYSQL_DBNAME: {{ mariadb_dbname }}
+      PDNS_GMYSQL_USER: {{ mariadb_user }}
+      PDNS_GMYSQL_PASSWORD: {{ powerdns_mariadb_user_password }}
+      PDNS_WEBSERVER: "yes"
+      PDNS_WEBSERVER_ADDRESS: 0.0.0.0
+      PDNS_WEBSERVER_PORT: 8081
+      PDNS_WEBSERVER_PASSWORD: {{ powerdns_webserver_password }}
+      PDNS_WEBSERVER_ALLOW_FROM: {{ docker_pool_base }}
+      PDNS_API: "yes"
+      PDNS_API_KEY: {{ powerdns_api_key }}
+      PDNS_ALLOW_AXFR_IPS: "{{ powerdns_allow_axfr_ips | join(",") }}"
+      PDNS_LOCAL_ADDRESS: 0.0.0.0
+    ports:
+      - target: 53
+        published: 53
+        protocol: tcp
+        mode: host
+      - target: 53
+        published: 53
+        protocol: udp
+        mode: host
+    labels:
+      traefik.docker.network: {{ docker_frontend_network }}
+      traefik.enable: "true"
+      # Routers
+      traefik.http.routers.dyndns.rule: >-
+{% for rule in powerdns_traefik_router_rules %}
+        Host(`{{ rule }}`) {{ "||" if not loop.last else "" }}
+{% endfor %}
+      traefik.http.routers.dyndns.entrypoints: web
+      traefik.http.routers.dyndns.middlewares: https-redirect
+      traefik.http.routers.dyndns-ssl.rule: >-
+{% for rule in powerdns_traefik_router_rules %}
+        Host(`{{ rule }}`) {{ "||" if not loop.last else "" }}
+{% endfor %}
+      traefik.http.routers.dyndns-ssl.entrypoints: websecure
+      traefik.http.routers.dyndns-ssl.tls: "true"
+      traefik.http.routers.dyndns-ssl.tls.certresolver: letsencrypt
+
+      # Services
+      traefik.http.services.dyndns-ssl.loadbalancer.server.port: 8081
+
+      # Accepts request from defined IP
+      traefik.http.middlewares.dyndns-ipwhitelist.ipwhitelist.sourcerange: {{ powerdns_whitelisted_ip_range }}
+    depends_on:
+      {{ mariadb_container_name }}:
+        condition: "service_healthy"
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    cpu_shares: {{ powerdns_cpu_shares | default(512, true) }}
+    pids_limit: {{ powerdns_pids_limits | default(20, true) }}
+    mem_limit: {{ powerdns_mem_limit | default('100m', true) }}
+    networks:
+      - {{ docker_frontend_network }}
+      - {{ docker_backend_network }}

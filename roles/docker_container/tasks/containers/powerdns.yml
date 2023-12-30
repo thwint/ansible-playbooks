@@ -1,0 +1,44 @@
+---
+- name: powerdns | Disable resolved service
+  become: true
+  ansible.builtin.systemd_service:
+    name: systemd-resolved
+    enabled: false
+    state: stopped
+    masked: true
+  tags:
+    - powerdns
+
+- name: "powerdns | Add docker-compose.yml powerdns"
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ item }}"
+    group: "{{ docker_group }}"
+    mode: '0640'
+  with_items:
+    - "{{ docker_data_path }}/dc_management_powerdns.yml"
+  vars:
+    project_name: management
+    containers:
+      - powerdns
+      - mariadb
+    container_volumes:
+      - "{{ mariadb_container_name }}"
+    mariadb_user: "{{ powerdns_mariadb_user | default('powerdns', true) }}"
+    mariadb_container_name: powerdns-mariadb
+    mariadb_dbname: >-
+      "{{ powerdns_mariadb_dbname | default('powerdnsdb', true) }}"
+    mariadb_user_password: "{{ powerdns_mariadb_user_password }}"
+    mariadb_root_password: "{{ powerdns_mariadb_root_password }}"
+    mariadb_mem_limit: 400m
+    mariadb_data_path: "{{ mariadb_container_name }}"
+  tags:
+    - powerdns
+
+- name: "powerdns | Start powerdns container" # noqa: no-changed-when
+  ansible.builtin.command:
+    cmd: >-
+      docker compose -f {{ docker_data_path }}/dc_management_powerdns.yml up -d
+    chdir: "{{ docker_data_path }}"
+  tags:
+    - powerdns

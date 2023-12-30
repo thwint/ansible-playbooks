@@ -1,0 +1,42 @@
+################################################################################
+  powerdns-admin:
+    image: powerdnsadmin/pda-legacy:latest
+    environment:
+      SQLALCHEMY_DATABASE_URI: mysql://{{ mariadb_user }}:{{ mariadb_user_password }}@{{ mariadb_container_name }}/{{ mariadb_dbname }}
+      GUINCORN_TIMEOUT: 60
+      GUNICORN_WORKERS: 2
+      GUNICORN_LOGLEVEL: WARNING
+      MYSQL_PASSWORD: {{ mariadb_user_password }}
+    labels:
+      traefik.docker.network: {{ docker_frontend_network }}
+      traefik.enable: "true"
+      # Routers
+      traefik.http.routers.dns.rule: >-
+{% for rule in powerdns_admin_traefik_router_rules %}
+        Host(`{{ rule }}`) {{ "||" if not loop.last else "" }}
+{% endfor %}
+      traefik.http.routers.dns.entrypoints: web
+      traefik.http.routers.dns.middlewares: https-redirect
+
+      traefik.http.routers.dns-ssl.rule: >-
+{% for rule in powerdns_admin_traefik_router_rules %}
+        Host(`{{ rule }}`) {{ "||" if not loop.last else "" }}
+{% endfor %}
+      traefik.http.routers.dns-ssl.entrypoints: websecure
+      traefik.http.routers.dns-ssl.tls: true
+      traefik.http.routers.dns-ssl.tls.certresolver: letsencrypt
+
+      # Services
+      traefik.http.services.dns-ssl.loadbalancer.server.port: 80
+    depends_on:
+      {{ mariadb_container_name }}:
+        condition: "service_healthy"
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    cpu_shares: {{ powerdns_admin_cpu_shares | default(512, true) }}
+    pids_limit: {{ powerdns_admin_pids_limits | default(10, true) }}
+    mem_limit: {{ powerdns_admin_mem_limit | default('200m', true) }}
+    networks:
+      - {{ docker_frontend_network }}
+      - {{ docker_backend_network }}

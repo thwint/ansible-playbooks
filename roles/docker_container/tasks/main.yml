@@ -31,6 +31,22 @@
   tags:
     - always
 
+- name: "Include tasks to deploy powerdns container"
+  ansible.builtin.include_tasks: containers/powerdns.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('powerdns')
+  tags:
+    - always
+
+- name: "Include tasks to deploy powerdns admin container"
+  ansible.builtin.include_tasks: containers/powerdns_admin.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('powerdns-admin')
+  tags:
+    - always
+
 - name: "Include tasks to deploy semaphore container"
   ansible.builtin.include_tasks: containers/semaphore.yml
   when: >-

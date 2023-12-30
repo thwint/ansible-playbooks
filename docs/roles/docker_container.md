@@ -14,8 +14,8 @@ List of available containers:
 * openhab (wip)
 * pihole (wip)
 * [Portainer](docker_container/portainer.md)
-* powerdens (wip)
-* powerdnsAdmin (wip)
+* [Powerdns](docker_container/powerdns.md)
+* [PowerdnsAdmin](docker_container/powerdns_admin.md)
 * [Redis](docker_container/redis.md)
 * [Traefik](docker_container/traefik.md)
 

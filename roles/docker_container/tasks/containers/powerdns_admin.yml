@@ -1,0 +1,35 @@
+---
+- name: "powerdns_admin | Add docker-compose.yml powerdns_admin"
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ item }}"
+    group: "{{ docker_group }}"
+    mode: '0640'
+  with_items:
+    - "{{ docker_data_path }}/dc_management_powerdns_admin.yml"
+  vars:
+    project_name: management
+    containers:
+      - powerdns_admin
+      - mariadb
+    container_volumes:
+      - "{{ mariadb_container_name }}"
+    mariadb_user: "{{ powerdns_admin_mariadb_user | default('pdnsa', true) }}"
+    mariadb_container_name: powerdns-admin-mariadb
+    mariadb_dbname: "{{ powerdns_admin_mariadb_dbname |
+      default('pdnsadb', true) }}"
+    mariadb_user_password: "{{ powerdns_admin_mariadb_user_password }}"
+    mariadb_root_password: "{{ powerdns_admin_mariadb_root_password }}"
+    mariadb_mem_limit: 400m
+    mariadb_data_path: "{{ mariadb_container_name }}"
+  tags:
+    - powerdns_admin
+
+- name: powerdns_admin | Start powerdns_admin container # noqa: no-changed-when
+  ansible.builtin.command:
+    cmd: "docker compose -f \
+      {{ docker_data_path }}/dc_management_powerdns_admin.yml \
+      up -d"
+    chdir: "{{ docker_data_path }}"
+  tags:
+    - powerdns_admin
