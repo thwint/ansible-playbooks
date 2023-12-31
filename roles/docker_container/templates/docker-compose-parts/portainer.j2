@@ -3,26 +3,23 @@
     image: portainer/{{ portainer_edition | default("portainer-ce", true) }}:{{ portainer_version | default("latest", true) }}
     command: -H unix:///var/run/docker.sock --admin-password '{{ admin_password }}'
     labels:
-      - "traefik.docker.network=frontend"
-      - "traefik.enable=true"
+      traefik.docker.network: frontend
+      traefik.enable: true
       # Routers
-      - "traefik.http.routers.portainer.rule=Host(`{{ inventory_hostname }}`) && PathPrefix(`/portainer`)"
-      - "traefik.http.routers.portainer.entrypoints=web"
 {% if ssl_enabled | default(false, true) %}
-      - "traefik.http.routers.portainer.middlewares=https-redirect"
-      - "traefik.http.routers.portainer-ssl.rule=Host(`{{ inventory_hostname }}`) && PathPrefix(`/portainer`)"
-      - "traefik.http.routers.portainer-ssl.entrypoints=websecure"
-      - "traefik.http.routers.portainer-ssl.tls=true"
-      - "traefik.http.routers.portainer-ssl.service=portainer-ssl"
-      - "traefik.http.routers.portainer-ssl.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.portainer-ssl.middlewares=portainer-strip"
-      - "traefik.http.services.portainer-ssl.loadbalancer.server.port=9000"
+      traefik.http.routers.portainer.entrypoints: websecure
+      traefik.http.routers.portainer.tls: "true"
+      traefik.http.routers.portainer.tls.certresolver: letsencrypt
 {% else %}
-      - "traefik.http.routers.portainer.middlewares=portainer-strip"
-      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      traefik.http.routers.portainer.entrypoints: web
 {% endif %}
+      traefik.http.routers.portainer.service: portainer
+      traefik.http.routers.portainer.middlewares: portainer-strip
+      traefik.http.routers.portainer.rule: Host(`{{ inventory_hostname }}`) && PathPrefix(`/portainer`)
+      # Services
+      traefik.http.services.portainer.loadbalancer.server.port: 9000
       # Middlewares
-      - "traefik.http.middlewares.portainer-strip.stripprefix.prefixes=/portainer"
+      traefik.http.middlewares.portainer-strip.stripprefix.prefixes: /portainer
     restart: on-failure:5
     security_opt:
       - no-new-privileges

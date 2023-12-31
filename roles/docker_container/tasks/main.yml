@@ -15,6 +15,14 @@
   tags:
     - always
 
+- name: "Include tasks to deploy crowdsec container"
+  ansible.builtin.include_tasks: containers/crowdsec.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('crowdsec')
+  tags:
+    - always
+
 - name: "Include tasks to deploy nextcloud container"
   ansible.builtin.include_tasks: containers/nextcloud.yml
   when: >-

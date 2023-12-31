@@ -1,5 +1,7 @@
 # Traefik
 
+Setup and configure a Traefik proxy
+
 ## Traefik variables
 
 | name                        | purpose                                  | default value | remark |

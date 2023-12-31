@@ -31,23 +31,19 @@
       traefik.docker.network: {{ docker_frontend_network }}
       traefik.enable: "true"
       # Routers
+{% if ssl_enabled | default(false, true) %}
+      traefik.http.routers.dyndns.entrypoints: websecure
+      traefik.http.routers.dyndns.tls: "true"
+      traefik.http.routers.dyndns.tls.certresolver: letsencrypt
+{% else %}
+      traefik.http.routers.dyndns.entrypoints: web
+{% endif %}
       traefik.http.routers.dyndns.rule: >-
 {% for rule in powerdns_traefik_router_rules %}
         Host(`{{ rule }}`) {{ "||" if not loop.last else "" }}
 {% endfor %}
-      traefik.http.routers.dyndns.entrypoints: web
-      traefik.http.routers.dyndns.middlewares: https-redirect
-      traefik.http.routers.dyndns-ssl.rule: >-
-{% for rule in powerdns_traefik_router_rules %}
-        Host(`{{ rule }}`) {{ "||" if not loop.last else "" }}
-{% endfor %}
-      traefik.http.routers.dyndns-ssl.entrypoints: websecure
-      traefik.http.routers.dyndns-ssl.tls: "true"
-      traefik.http.routers.dyndns-ssl.tls.certresolver: letsencrypt
-
       # Services
-      traefik.http.services.dyndns-ssl.loadbalancer.server.port: 8081
-
+      traefik.http.services.dyndns.loadbalancer.server.port: 8081
       # Accepts request from defined IP
       traefik.http.middlewares.dyndns-ipwhitelist.ipwhitelist.sourcerange: {{ powerdns_whitelisted_ip_range }}
     depends_on:

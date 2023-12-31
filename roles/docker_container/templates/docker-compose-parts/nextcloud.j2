@@ -23,20 +23,18 @@
       traefik.docker.network: {{ docker_frontend_network }}
       traefik.enable: "true"
       # Routers
+{% if ssl_enabled | default(false, true) %}
+      traefik.http.routers.nextcloud.entrypoints: websecure
+      traefik.http.routers.nextcloud.tls: "true"
+      traefik.http.routers.nextcloud.tls.certresolver: letsencrypt
+      traefik.http.routers.nextcloud.middlewares: nextcloud-service-discovery,nextcloud-headers
+{% else %}
+      traefik.http.routers.nextcloud.entrypoints: web
+{% endif %}
       traefik.http.routers.nextcloud.rule: >-
 {% for rule in nextcloud_traefik_router_rules %}
         Host(`{{ rule }}`) {{ "||" if not loop.last else "" }}
 {% endfor %}
-      traefik.http.routers.nextcloud.entrypoints: web
-      traefik.http.routers.nextcloud.middlewares: https-redirect
-      traefik.http.routers.nextcloud-ssl.rule: >-
-{% for rule in nextcloud_traefik_router_rules %}
-        Host(`{{ rule }}`) {{ "||" if not loop.last else "" }}
-{% endfor %}
-      traefik.http.routers.nextcloud-ssl.entrypoints: websecure
-      traefik.http.routers.nextcloud-ssl.middlewares: nextcloud-service-discovery,nextcloud-headers
-      traefik.http.routers.nextcloud-ssl.tls: true
-      traefik.http.routers.nextcloud-ssl.tls.certresolver: letsencrypt
       # Middlewares
       traefik.http.middlewares.nextcloud-service-discovery.redirectregex.regex: https://(.*)/.well-known/(card|cal)dav
       traefik.http.middlewares.nextcloud-service-discovery.redirectregex.replacement: https://$$1/remote.php/dav/
@@ -50,9 +48,8 @@
       traefik.http.middlewares.nextcloud-headers.headers.STSPreload: true
       traefik.http.middlewares.nextcloud-headers.headers.browserXSSFilter: true
       traefik.http.middlewares.nextcloud-headers.headers.referrerPolicy: no-referrer
-      #traefik.http.middlewares.nextcloud-headers.headers.SSLProxyHeaders: X-Forwarded-For:185.16.61.23||X-Real-IP:185.16.61.23||X-Forwarded-Host:cloud.winterhader.ch||X-Forwarded-Proto:https
       # Services
-      traefik.http.services.nextcloud-ssl.loadbalancer.server.port: 80
+      traefik.http.services.nextcloud.loadbalancer.server.port: 80
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80"]
       interval: 1m

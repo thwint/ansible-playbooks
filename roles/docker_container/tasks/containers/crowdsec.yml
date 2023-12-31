@@ -1,0 +1,67 @@
+---
+- name: crowdsec | Create crowdsec directories
+  become: true
+  ansible.builtin.file:
+    path: "{{ docker_data_path }}/core/crowdsec/{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: 1000
+    group: "{{ docker_group }}"
+  with_items:
+    - config
+  tags:
+    - crowdsec
+
+- name: "crowdsec | Add docker-compose.yml crowdsec"
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ item }}"
+    group: "{{ docker_group }}"
+    mode: '0640'
+  with_items:
+    - "{{ docker_data_path }}/dc_core_crowdsec.yml"
+  vars:
+    project_name: core
+    containers:
+      - crowdsec
+    container_volumes:
+      - crowdsec_data
+  tags:
+    - crowdsec
+
+- name: "crowdsec | Start crowdsec container" # noqa: no-changed-when
+  ansible.builtin.command:
+    cmd: >-
+      docker compose -f {{ docker_data_path }}/dc_core_crowdsec.yml up -d
+    chdir: "{{ docker_data_path }}"
+  tags:
+    - crowdsec
+
+- name: crowdsec | Enroll crowdsec engine
+  community.docker.docker_container_exec:
+    container: core-crowdsec-1
+    command: "cscli console enroll --name {{ ansible_fqdn }}
+      {{ crowdsec_enroll_token }}"
+  register: crowdsec_enroll
+  changed_when:
+    - '"successfully enrolled" in crowdsec_enroll.stderr'
+  failed_when:
+    - '"FATA" in crowdsec_enroll.stderr'
+    - '"ERR" in crowdsec_enroll.stderr'
+  tags:
+    - crowdsec
+
+- name: crowdsec | Create Traefik bouncer key
+  community.docker.docker_container_exec:
+    container: core-crowdsec-1
+    command: "cscli bouncers add bouncer-traefik -o raw"
+  register: crowdsec_traefik_bouncer
+  when: not crowdsec_bouncer_api_key
+  tags:
+    - crowdsec
+
+- name: crowdsec | Print generated API key
+  ansible.builtin.debug:
+    msg: "{{ crowdsec_traefik_bouncer }}"
+  tags:
+    - crowdsec

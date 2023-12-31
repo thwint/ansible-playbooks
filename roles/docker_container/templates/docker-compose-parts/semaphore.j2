@@ -6,17 +6,15 @@
       - "traefik.enable=true"
       # Routers
       - "traefik.http.routers.semaphore.rule=Host(`{{ inventory_hostname }}`) && PathPrefix(`/semaphore`)"
-      - "traefik.http.routers.semaphore.entrypoints=web"
 {% if ssl_enabled | default(false, true) %}
-      - "traefik.http.routers.semaphore.middlewares=https-redirect"
-      - "traefik.http.routers.semaphore-ssl.rule=Host(`{{ inventory_hostname }}`) && PathPrefix(`/semaphore`)"
-      - "traefik.http.routers.semaphore-ssl.entrypoints=websecure"
-      - "traefik.http.routers.semaphore-ssl.tls=true"
-      - "traefik.http.routers.semaphore-ssl.service=semaphore-ssl"
-      - "traefik.http.routers.semaphore-ssl.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.semaphore.entrypoints=websecure"
+      - "traefik.http.routers.semaphore.tls=true"
+      - "traefik.http.routers.semaphore.tls.certresolver=letsencrypt"
 {% else %}
-      - "traefik.http.services.semaphore.loadbalancer.server.port=3000"
+      - "traefik.http.routers.semaphore.entrypoints=web"
 {% endif %}
+      - "traefik.http.routers.semaphore.service=semaphore"
+      - "traefik.http.services.semaphore.loadbalancer.server.port=3000"
     environment:
       SEMAPHORE_DB_USER: {{ mariadb_user | default("semaphore", true) }}
       SEMAPHORE_DB_PASS: {{ mariadb_user_password }}

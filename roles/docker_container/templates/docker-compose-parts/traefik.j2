@@ -3,36 +3,40 @@
     image: traefik:{{ traefik_version | default("latest", true) }}
     hostname: traefik
     command:
-      - "--log=true"
-      - "--log.filepath=/var/log/traefik/traefik.log"
-      - "--log.level=INFO"
-      - "--api"
-      - "--accessLog=true"
-      - "--accessLog.filepath=/var/log/traefik/access.log"
-      - "--providers.docker"
-      - "--providers.docker.watch"
-      - "--providers.docker.exposedbydefault=false"
-      - "--ping"
-      - "--entrypoints.web.address=:80"
+      - --log=true
+      - --log.filepath=/var/log/traefik/traefik.log
+      - --log.level=INFO
+      - --api
+      - --accessLog=true
+      - --accessLog.filepath=/var/log/traefik/access.log
+      - --providers.docker
+      - --providers.docker.watch
+      - --providers.docker.exposedbydefault=false
+      - --ping
+      - --entrypoints.web.address=:80
 {% for entrypoint in traefik_entrypoints %}
-      - "--entrypoints.{{ entrypoint.name }}.address=:{{ entrypoint.port }}"
+      - --entrypoints.{{ entrypoint.name }}.address=:{{ entrypoint.port }}
 {% endfor %}
 {% if ssl_enabled | default(false, true) %}
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=websecure"
-      - "--entrypoints.websecure.address=:443"
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
 {% endif %}
-      - "--experimental.plugins.rewritebody.modulename=github.com/traefik/plugin-rewritebody"
-      - "--experimental.plugins.rewritebody.version=v0.3.1"
+{% if crowdsec_enabled | default(false, true) %}
+      - --entrypoints.http.http.middlewares=crowdsec-bouncer@docker
+      - --entrypoints.https.http.middlewares=crowdsec-bouncer@docker
+{% endif %}
+      - --experimental.plugins.rewritebody.modulename=github.com/traefik/plugin-rewritebody
+      - --experimental.plugins.rewritebody.version=v0.3.1
 {% if traefik_letsencrypt_enabled | default(false, true) %}
-      - "--certificatesresolvers.letsencrypt.acme.email={{ admin_email }}"
-      - "--certificatesResolvers.letsencrypt.acme.httpchallenge=true"
-      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.letsencrypt.acme.storage=/certificates/acme.json"
+      - --certificatesresolvers.letsencrypt.acme.email={{ admin_email }}
+      - --certificatesResolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.storage=/certificates/acme.json
 {% endif %}
-{% if prometheus_enabled | default(false, true)  %}
-      - "--metrics.prometheus=true"
-      - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
+{% if prometheus_enabled | default(false, true) %}
+      - --metrics.prometheus=true
+      - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
 {% endif %}
     pids_limit: 50
     mem_limit: 200m
@@ -44,19 +48,20 @@
     labels:
       traefik.enable: "true"
       traefik.http.routers.traefik.rule: Host(`{{ inventory_hostname }}`) && (PathPrefix(`/traefik`) || HeadersRegexp(`Referer`, `.*/traefik/.*`))
-      traefik.http.routers.traefik.middlewares: traefik-strip
+      traefik.http.routers.traefik.middlewares: traefik-strip, https-redirect
 {%- if traefik_basic_auth | default("", true) | length -%}
     , authtraefik
 {% endif %}
-
       traefik.http.routers.traefik.service: api@internal
       traefik.http.middlewares.traefik-strip.stripprefix.prefixes: /traefik
 {% if traefik_basic_auth | default("", true) | length %}
       # Basic auth
       traefik.http.middlewares.authtraefik.basicauth.users: {{ traefik_basic_auth }}
 {% endif %}
-      traefik.http.middlewares.crowdsec-bouncer.forwardauth.address: http://crowdsec_bouncer_traefik:8080/api/v1/forwardAuth
+{% if crowdsec_enabled | default(false, true) %}
+      traefik.http.middlewares.crowdsec-bouncer.forwardauth.address: http://crowdsec-bouncer-traefik:8080/api/v1/forwardAuth
       traefik.http.middlewares.crowdsec-bouncer.forwardauth.trustForwardHeader: true
+{% endif %}
 {% if ssl_enabled | default(false, true) %}
       # SSL redirect
       traefik.http.middlewares.https-redirect.redirectscheme.scheme: https
