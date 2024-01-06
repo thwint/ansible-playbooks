@@ -1,6 +1,6 @@
 ################################################################################
   powerdns:
-    image: thwint/powerdns:latest
+    image: thwint/powerdns:{{ powerdns_version | default("latest", true) }}
     hostname: powerdns
     environment:
       PDNS_LAUNCH: gmysql

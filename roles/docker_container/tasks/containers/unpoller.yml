@@ -1,0 +1,40 @@
+---
+- name: "unpoller | Add docker-compose.yml unpoller"
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ item }}"
+    group: "{{ docker_group }}"
+    mode: '0640'
+  with_items:
+    - "{{ docker_data_path }}/dc_monitoring_unpoller.yml"
+  vars:
+    project_name: monitoring
+    containers:
+      - unpoller
+    ip_address: "{{ host_primary_ipv4_address |
+      default(ansible_default_ipv4.address) }}"
+  tags:
+    - unpoller
+
+- name: "unpoller | Start unpoller container" # noqa: no-changed-when
+  ansible.builtin.command:
+    cmd: >-
+      docker compose -f {{ docker_data_path }}/dc_monitoring_unpoller.yml up -d
+    chdir: "{{ docker_data_path }}"
+  tags:
+    - unpoller
+
+- name: "unpoller | Add unpoller scraper for unpoller"
+  ansible.builtin.blockinfile:
+    marker: "# {mark} ANSIBLE MANAGED BLOCK (unpoller)"
+    path: "{{ docker_data_path }}/monitoring/prometheus/etc/prometheus.yml"
+    block: |2
+        - job_name: unpoller
+          metrics_path: /metrics
+          static_configs:
+            - targets:
+              - unpoller:9130
+  when: prometheus_enabled | default(false)
+  notify: Restart prometheus container
+  tags:
+    - unpoller

@@ -1,0 +1,19 @@
+################################################################################
+  node_exporter:
+    image: prom/node-exporter:{{ node_exporter_version | default("latest", true) }}
+    hostname: node_exporter
+    command:
+      - '--path.rootfs=/host'
+    network_mode: host
+    pid: host
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:9100/metrics
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    read_only: true
+    cpu_shares: 512
+    pids_limit: 30
+    mem_limit: 100m
+    volumes:
+      - '/:/host:ro,rslave'

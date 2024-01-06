@@ -7,7 +7,11 @@
     labels:
       traefik.enable: "true"
       traefik.http.routers.adminer.rule: PathPrefix(`/adminer`)
+{% if ssl_enabled | default(false, true) %}
       traefik.http.routers.adminer.entrypoints: websecure
+{% else %}
+      traefik.http.routers.adminer.entrypoints: web
+{% endif %}
       traefik.http.services.adminer.loadbalancer.server.port: 8080
     cpu_shares: 512
     restart: on-failure:5

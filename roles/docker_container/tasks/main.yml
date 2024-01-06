@@ -23,11 +23,51 @@
   tags:
     - always
 
+- name: "Include tasks to deploy grafana container"
+  ansible.builtin.include_tasks: containers/grafana.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('grafana')
+  tags:
+    - always
+
 - name: "Include tasks to deploy nextcloud container"
   ansible.builtin.include_tasks: containers/nextcloud.yml
   when: >-
     docker is defined
     and docker.containers is contains('nextcloud')
+  tags:
+    - always
+
+- name: "Include tasks to deploy netboot.xyz container"
+  ansible.builtin.include_tasks: containers/netboot.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('netboot')
+  tags:
+    - always
+
+- name: "Include tasks to deploy node_exporter  container"
+  ansible.builtin.include_tasks: containers/node_exporter.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('node_exporter')
+  tags:
+    - always
+
+- name: "Include tasks to deploy openhab  container"
+  ansible.builtin.include_tasks: containers/openhab.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('openhab')
+  tags:
+    - always
+
+- name: "Include tasks to deploy pihole  container"
+  ansible.builtin.include_tasks: containers/pihole.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('pihole')
   tags:
     - always
 
@@ -55,11 +95,27 @@
   tags:
     - always
 
+- name: "Include tasks to deploy openhab  prometheus"
+  ansible.builtin.include_tasks: containers/prometheus.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('prometheus')
+  tags:
+    - always
+
 - name: "Include tasks to deploy semaphore container"
   ansible.builtin.include_tasks: containers/semaphore.yml
   when: >-
     docker is defined
     and docker.containers is contains('semaphore')
+  tags:
+    - always
+
+- name: "Include tasks to deploy unpoller  container"
+  ansible.builtin.include_tasks: containers/unpoller.yml
+  when: >-
+    docker is defined
+    and docker.containers is contains('unpoller')
   tags:
     - always
 

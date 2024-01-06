@@ -1,20 +1,31 @@
 # MariaDB
 
 A MariaDB database container. These containers are usually configured with a service
-requiring MariaDB or MySQL database as a backend.
+requiring a MariaDB or MySQL database as a backend.
+
+## Global variables
+
+Globally defined variables used by this deployment.
+
+| Name                   | Documentation                                 |
+| ---------------------- | --------------------------------------------- |
+| docker_backend_network | [Docker daemon](roles/docker_daemon.md)       |
+| prometheus_enabled     | [Docker container](roles/docker_container.md) |
+| timezone               | [Base](roles/base.md)                         |
 
 ## MariaDB variables
 
-| name                   | purpose                                    | default value | remark                         |
-| ---------------------- | ------------------------------------------ | ------------- | ------------------------------ |
-| mariadb_container_name | The name of the mariadb container          |               | Should be configured in a task |
-| mariadb_cpu_shares     | The limit of cpu shares allowd to use      | 512           |                                |
-| mariadb_data_path      | The directory/volume to store mariadb data |               | Should be configured in a task |
-| mariadb_mem_limit      | The limit of memory allowd to use          | 100m          |                                |
-| mariadb_pids_limit     | The limit of pids allowd to use            | 30            |                                |
-| mariadb_root_password  | The database root password                 |               | Should be configured in a task |
-| mariadb_user_password  | The database user password                 |               | Should be configured in a task |
-| mariadb_version        | The version of the mariadb image           | latest        |                                |
+| name                     | purpose                                    | default value | remark                         |
+| ------------------------ | ------------------------------------------ | ------------- | ------------------------------ |
+| mariadb_container_name   | The name of the mariadb container          |               | Should be configured in a task |
+| mariadb_cpu_shares       | The limit of cpu shares allowd to use      | 512           |                                |
+| mariadb_data_path        | The directory/volume to store mariadb data |               | Should be configured in a task |
+| mariadb_exporter_version | The version of the mysql exporter image    | latest        |                                |
+| mariadb_mem_limit        | The limit of memory allowd to use          | 100m          |                                |
+| mariadb_pids_limit       | The limit of pids allowd to use            | 30            |                                |
+| mariadb_root_password    | The database root password                 |               | Should be configured in a task |
+| mariadb_user_password    | The database user password                 |               | Should be configured in a task |
+| mariadb_version          | The version of the mariadb image           | latest        |                                |
 
 ## Usage example
 

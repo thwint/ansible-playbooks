@@ -1,0 +1,28 @@
+################################################################################
+  unpoller:
+    image: ghcr.io/unpoller/unpoller:{{ unpoller_version | default("latest", true) }}
+    hostname: unpoller
+    environment:
+      UP_INFLUXDB_DISABLE: "true"
+      UP_POLLER_DEBUG: "false"
+      UP_UNIFI_DYNAMIC: "false"
+      UP_PROMETHEUS_HTTP_LISTEN: 0.0.0.0:9130
+      UP_PROMETHEUS_NAMESPACE: unpoller
+      UP_UNIFI_CONTROLLER_0_PASS: uT7eetheepoozaedai4Leeliemoh7fau
+      UP_UNIFI_CONTROLLER_0_SAVE_ALARMS: "true"
+      UP_UNIFI_CONTROLLER_0_SAVE_ANOMALIES: "true"
+      UP_UNIFI_CONTROLLER_0_SAVE_DPI: "true"
+      UP_UNIFI_CONTROLLER_0_SAVE_EVENTS: "true"
+      UP_UNIFI_CONTROLLER_0_SAVE_IDS: "true"
+      UP_UNIFI_CONTROLLER_0_SAVE_SITES: "true"
+      UP_UNIFI_CONTROLLER_0_URL: {{ unpoller_controller_url }}
+      UP_UNIFI_CONTROLLER_0_USER: {{ unpoller_ro_user }}
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    read_only: true
+    cpu_shares: 512
+    pids_limit: 20
+    mem_limit: 100m
+    networks:
+      - {{ docker_backend_network }}

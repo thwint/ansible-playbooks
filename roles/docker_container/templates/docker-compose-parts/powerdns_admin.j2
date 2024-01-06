@@ -1,6 +1,6 @@
 ################################################################################
   powerdns-admin:
-    image: powerdnsadmin/pda-legacy:latest
+    image: powerdnsadmin/pda-legacy:{{ powerdns_admin_version | default("latest", true) }}
     environment:
       SQLALCHEMY_DATABASE_URI: mysql://{{ mariadb_user }}:{{ mariadb_user_password }}@{{ mariadb_container_name }}/{{ mariadb_dbname }}
       GUINCORN_TIMEOUT: 60

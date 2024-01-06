@@ -3,6 +3,14 @@
 A Redis database container. These containers are usually configured with a service
 requiring Redis as a backend service.
 
+## Global variables
+
+Globally defined variables used by this deployment.
+
+| Name                    | Documentation                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------- |
+| docker_backend_network  | [Docker daemon](roles/docker_daemon.md)                                                        |
+
 ## Redis variables
 
 | name                 | purpose                                  | default value | remark                         |

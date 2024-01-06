@@ -1,0 +1,57 @@
+################################################################################
+  pihole:
+    image: pihole/pihole:{{ pihole_version | default("latest", true) }}
+    hostname: pihole
+    environment:
+      TZ: {{ timezone }}
+      WEBPASSWORD: {{ pihole_web_password }}
+      DNS1: {{ pihole_dns_1 }}
+    labels:
+      traefik.enable: "true"
+{% if ssl_enabled | default(false, true) %}
+      traefik.http.routers.pihole.entrypoints: websecure
+      traefik.http.routers.pihole.tls: "true"
+      traefik.http.routers.pihole.tls.certresolver: letsencrypt
+{% else %}
+      traefik.http.routers.pihole.entrypoints: web
+{% endif %}
+      traefik.http.routers.pihole.rule: Host(`{{ inventory_hostname }}`) && (PathPrefix(`/pihole`) || HeadersRegexp(`Referer`, `.*/pihole/.*`))
+      traefik.http.routers.pihole.middlewares: pihole-strip,pihole-add
+      traefik.http.middlewares.pihole-strip.stripprefix.prefixes: /pihole
+      traefik.http.middlewares.pihole-add.addprefix.prefix: /admin
+      traefik.http.services.pihole.loadbalancer.server.port: 80
+    volumes:
+      - {{ docker_data_path }}/management/pihole/etc/pihole:/etc/pihole
+      - {{ docker_data_path }}/management/pihole/etc/dnsmasq.d:/etc/dnsmasq.d
+      - {{ docker_data_path }}/management/pihole/var/log:/var/log/pihole
+    ports:
+      - "{{ ip_address }}:53:53/tcp"
+      - "{{ ip_address }}:53:53/udp"
+    cpu_shares: 512
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    pids_limit: 50
+    mem_limit: 100m
+    networks:
+      - {{ docker_frontend_network }}
+{% if prometheus_enabled | default(false, true) %}
+################################################################################
+  pihole_exporter:
+    image: ekofr/pihole-exporter:{{ pihole_exporter_version | default("latest", true) }}
+    hostname: pihole_exporter
+    environment:
+      PIHOLE_HOSTNAME: pihole
+      PIHOLE_PORT: 80
+      PIHOLE_PASSWORD: {{ pihole_web_password }}
+      INTERVAL: 30s
+      PORT: 9617
+    cpu_shares: 512
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    pids_limit: 50
+    mem_limit: 100m
+    networks:
+      - {{ docker_frontend_network }}
+{% endif %}

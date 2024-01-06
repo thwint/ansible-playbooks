@@ -1,0 +1,43 @@
+################################################################################
+  prometheus:
+    hostname: prometheus
+    image: prom/prometheus:{{ prometheus_version | default("latest", true) }}
+    volumes:
+      - {{ docker_data_path }}/monitoring/prometheus/etc:/etc/prometheus/
+      - {{ docker_data_path }}/monitoring/prometheus/data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.size=256MB'
+      - '--web.external-url=/prometheus/'
+      - '--web.route-prefix=/prometheus/'
+    labels:
+      traefik.enable: "true"
+{% if ssl_enabled | default(false, true) %}
+      traefik.http.routers.prometheus.entrypoints: websecure
+      traefik.http.routers.prometheus.tls: "true"
+      traefik.http.routers.prometheus.tls.certresolver: letsencrypt
+{% else %}
+      traefik.http.routers.prometheus.entrypoints: web
+{% endif %}
+      traefik.http.routers.prometheus.rule: Host(`{{ inventory_hostname }}`) && PathPrefix(`/prometheus`)
+      traefik.http.services.prometheus.loadbalancer.server.port: 9090
+    user: "{{ docker_uid }}"
+    healthcheck:
+      test: "wget -q -Y off http://localhost:9090/prometheus/-/healthy -O /dev/null > /dev/null 2>&1"
+      interval: 10s
+      retries: 30
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    read_only: true
+    cpu_shares: 512
+    pids_limit: 50
+    mem_limit: 400m
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - {{ docker_frontend_network }}
+      - {{ docker_backend_network }}

@@ -3,7 +3,21 @@
 Creates and starts a portainer container listening on `{{ inventory_hostname }}/portainer`.
 If `ssl_enabled` is set to `true` the connection is ssl terminated.
 
+## Global variables
+
+Globally defined variables used by this deployment.
+
+| Name                    | Documentation                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------- |
+| docker_data_path        | [Docker daemon](roles/docker_daemon.md)                                                        |
+| docker_group            | [Docker daemon](roles/docker_daemon.md)                                                        |
+| ssl_enabled             | [Docker container](roles/docker_container.md)                                                  |
+| docker_frontend_network | [Docker daemon](roles/docker_daemon.md)                                                        |
+| inventory_hostname      | [Ansible](https://docs.ansible.com/ansible/latest/reference_appendices/special_variables.html) |
+
 ## Portainer variables
+
+Portainer specific variables
 
 | name                     | purpose                                     | default value | remark                             |
 | ------------------------ | ------------------------------------------- | ------------- | ---------------------------------- |

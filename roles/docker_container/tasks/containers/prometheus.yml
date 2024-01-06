@@ -1,0 +1,78 @@
+---
+- name: "prometheus | Create directories for prometheus"
+  become: true
+  ansible.builtin.file:
+    path: "{{ docker_data_path }}/monitoring/prometheus/{{ item }}"
+    owner: "{{ docker_uid }}"
+    group: "{{ docker_group }}"
+    mode: '02775'
+    state: directory
+  with_items:
+    - "data"
+    - "etc"
+  tags:
+    - prometheus
+
+- name: "prometheus | Copy prometheus configuration files"
+  ansible.builtin.template:
+    src: prometheus/{{ item }}.j2
+    dest: "{{ docker_data_path }}/monitoring/prometheus/etc/{{ item }}"
+    group: "{{ docker_group }}"
+    mode: '0664'
+  with_items:
+    - alert.rules
+  tags:
+    - prometheus
+
+- name: "prometheus | Create Prometheus.yml"
+  ansible.builtin.blockinfile:
+    marker: "# {mark} ANSIBLE MANAGED BLOCK (prometheus)"
+    path: "{{ docker_data_path }}/monitoring/prometheus/etc/prometheus.yml"
+    block: |
+      ---
+      global:
+        scrape_interval: 15s
+        evaluation_interval: 15s
+        external_labels:
+          monitor: 'home'
+      rule_files:
+        - 'alert.rules'
+      scrape_configs:
+        - job_name: prometheus
+          scrape_interval: 5s
+          metrics_path: /prometheus/metrics
+          static_configs:
+            - targets:
+                - localhost:9090
+    insertbefore: BOF
+    create: true
+    owner: "{{ docker_uid }}"
+    group: "{{ docker_group }}"
+    mode: '0664'
+  when: prometheus_enabled | default(false)
+  notify: Restart prometheus container
+  tags:
+    - prometheus
+
+- name: "prometheus | Add docker-compose.yml prometheus"
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ item }}"
+    group: "{{ docker_group }}"
+    mode: '0640'
+  with_items:
+    - "{{ docker_data_path }}/dc_monitoring_prometheus.yml"
+  vars:
+    project_name: monitoring
+    containers:
+      - prometheus
+  tags:
+    - prometheus
+
+- name: "prometheus | Start prometheus container" # noqa: no-changed-when
+  ansible.builtin.command:
+    cmd: "docker compose -f
+      {{ docker_data_path }}/dc_monitoring_prometheus.yml up -d"
+    chdir: "{{ docker_data_path }}"
+  tags:
+    - prometheus

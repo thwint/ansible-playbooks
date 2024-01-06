@@ -29,7 +29,7 @@
 {% if prometheus_enabled | default(false, true) %}
 ################################################################################
   {{ mariadb_container_name }}-exporter:
-    image: prom/mysqld-exporter:v0.14.0
+    image: prom/mysqld-exporter:{{ mariadb_exporter_version | default("latest", true) }}
     command:
      - --collect.info_schema.tablestats
     hostname: {{ mariadb_container_name }}-exporter

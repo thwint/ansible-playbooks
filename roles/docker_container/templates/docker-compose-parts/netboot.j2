@@ -1,0 +1,54 @@
+################################################################################
+  netbootxyz:
+    image: lscr.io/linuxserver/netbootxyz:{{ netboot_version | default("latest", true) }}
+    hostname: netbootxyz
+    environment:
+      PUID: {{ docker_uid }}
+      PGID: {{ docker_gid }}
+      TZ: {{ timezone }}
+      PORT_RANGE: 30000:30010 # optional
+      SUBFOLDER: /netboot/ # optional
+    ports:
+      - "{{ ip_address }}:30000-30010:30000-30010"
+      - "{{ ip_address }}:69:69/udp"
+      - "{{ ip_address }}:8082:80" # optional
+    labels:
+      traefik.enable: "true"
+{% if ssl_enabled | default(false, true) %}
+      traefik.http.routers.netboot.entrypoints: websecure
+      traefik.http.routers.netboot.tls: "true"
+      traefik.http.routers.netboot.tls.certresolver: letsencrypt
+{% else %}
+      traefik.http.routers.netboot.entrypoints: web
+{% endif %}
+      # Netboot UI
+      traefik.http.routers.netboot.rule: Host(`{{ inventory_hostname }}`) && PathPrefix(`/netboot`)
+      traefik.http.routers.netboot.service: netboot
+      #traefik.http.middlewares.netboot-strip.stripprefix.prefixes: /netboot
+      traefik.http.services.netboot.loadbalancer.server.port: 3000
+      # Netboot assets
+{% if ssl_enabled | default(false, true) %}
+      traefik.http.routers.netbootassets.entrypoints: websecure
+      traefik.http.routers.netbootassets.tls: "true"
+      traefik.http.routers.netbootassets.tls.certresolver: letsencrypt
+{% else %}
+      traefik.http.routers.netbootassets.entrypoints: web
+{% endif %}
+      traefik.http.routers.netbootassets.rule: Host(`{{ inventory_hostname }}`) && PathPrefix(`/netbootassets`)
+      traefik.http.routers.netbootassets.service: netbootassets
+      traefik.http.routers.netbootassets.middlewares: netbootassets-strip
+      traefik.http.middlewares.netbootassets-strip.stripprefix.prefixes: /netbootassets
+      traefik.http.services.netbootassets.loadbalancer.server.port: 80
+    volumes:
+      - {{ docker_data_path }}/{{ project_name }}/netboot/config:/config
+      - {{ docker_data_path }}/{{ project_name }}/netboot/assets:/assets #optional
+    cpu_shares: 512
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/netboot"]
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges
+    pids_limit: 50
+    mem_limit: 100m
+    networks:
+      - {{ docker_frontend_network }}

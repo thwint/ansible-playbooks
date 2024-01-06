@@ -1,0 +1,6 @@
+---
+- name: "Restart prometheus container" # noqa: no-changed-when
+  ansible.builtin.command:
+    cmd: "docker compose -f
+      {{ docker_data_path }}/dc_monitoring_prometheus.yml restart prometheus"
+    chdir: "{{ docker_data_path }}"

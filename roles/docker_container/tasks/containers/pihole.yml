@@ -1,0 +1,55 @@
+---
+- name: "pihole | Create directories for pihole"
+  become: true
+  ansible.builtin.file:
+    path: "{{ docker_data_path }}/management/pihole/{{ item }}"
+    owner: "{{ docker_uid }}"
+    group: "{{ docker_group }}"
+    mode: '02775'
+    state: directory
+    recurse: true
+  with_items:
+    - "var"
+    - "etc"
+  tags:
+    - pihole
+
+- name: "pihole | Add docker-compose.yml pihole"
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ item }}"
+    group: "{{ docker_group }}"
+    mode: '0640'
+  with_items:
+    - "{{ docker_data_path }}/dc_management_pihole.yml"
+  vars:
+    project_name: management
+    containers:
+      - pihole
+    ip_address: "{{ host_primary_ipv4_address |
+      default(ansible_default_ipv4.address) }}"
+  tags:
+    - pihole
+
+- name: "pihole | Start pihole container" # noqa: no-changed-when
+  ansible.builtin.command:
+    cmd: >-
+      docker compose -f {{ docker_data_path }}/dc_management_pihole.yml up -d
+    chdir: "{{ docker_data_path }}"
+  tags:
+    - pihole
+
+- name: "pihole | Add pihole scraper for pihole"
+  ansible.builtin.blockinfile:
+    marker: "# {mark} ANSIBLE MANAGED BLOCK (pihole)"
+    path: "{{ docker_data_path }}/monitoring/prometheus/etc/prometheus.yml"
+    block: |2
+        - job_name: pihole
+          metrics_path: /metrics
+          static_configs:
+            - targets:
+              - pihole_exporter:9617
+  when: prometheus_enabled | default(false)
+  notify: Restart prometheus container
+  tags:
+    - pihole

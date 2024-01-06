@@ -32,3 +32,17 @@
     chdir: "{{ docker_data_path }}"
   tags:
     - semaphore
+
+- name: "semaphore | Add Prometheus scraper semaphore"
+  ansible.builtin.blockinfile:
+    marker: "# {mark} ANSIBLE MANAGED BLOCK (semaphore)"
+    path: "{{ docker_data_path }}/monitoring/prometheus/etc/prometheus.yml"
+    block: |2
+        - job_name: semaphore_db
+          static_configs:
+            - targets:
+                - semaphore-mariadb-exporter:9104
+  when: prometheus_enabled | default(false)
+  notify: Restart prometheus container
+  tags:
+    - semaphore

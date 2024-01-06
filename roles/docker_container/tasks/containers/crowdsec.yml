@@ -40,7 +40,7 @@
 - name: crowdsec | Enroll crowdsec engine
   community.docker.docker_container_exec:
     container: core-crowdsec-1
-    command: "cscli console enroll --name {{ ansible_fqdn }}
+    command: "cscli console enroll --name {{ inventory_hostname }}
       {{ crowdsec_enroll_token }}"
   register: crowdsec_enroll
   changed_when:

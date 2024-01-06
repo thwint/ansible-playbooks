@@ -35,12 +35,13 @@
 - name: "traefik | Add Prometheus scraper traefik"
   ansible.builtin.blockinfile:
     marker: "# {mark} ANSIBLE MANAGED BLOCK (traefik)"
-    path: "{{ docker_data_path }}/prometheus/etc/prometheus.yml"
+    path: "{{ docker_data_path }}/monitoring/prometheus/etc/prometheus.yml"
     block: |2
         - job_name: traefik
           metrics_path: /metrics
           static_configs:
-            - targets: ['traefik:8080']
+            - targets:
+                - traefik:8080
   when: prometheus_enabled | default(false)
   notify: Restart prometheus container
   tags:

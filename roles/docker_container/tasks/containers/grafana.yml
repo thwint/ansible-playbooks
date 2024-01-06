@@ -1,0 +1,68 @@
+---
+- name: "grafana | Create directories for grafana"
+  become: true
+  ansible.builtin.file:
+    path: "{{ docker_data_path }}/monitoring/grafana/{{ item }}"
+    owner: "{{ docker_uid }}"
+    group: "{{ docker_group }}"
+    mode: '02775'
+    state: directory
+    recurse: true
+  with_items:
+    - "data/dashboards"
+    - "conf/provisioning/dashboards/"
+    - "logs"
+  tags:
+    - grafana
+
+- name: "grafana | Add docker-compose.yml grafana"
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ item }}"
+    group: "{{ docker_group }}"
+    mode: '0640'
+  with_items:
+    - "{{ docker_data_path }}/dc_monitoring_grafana.yml"
+  vars:
+    project_name: monitoring
+    containers:
+      - grafana
+      - mariadb
+    container_volumes:
+      - "{{ mariadb_container_name }}"
+    mariadb_user: "{{ grafana_mariadb_user | default('grafana', true) }}"
+    mariadb_container_name: grafana-mariadb
+    mariadb_dbname: "{{ grafana_mariadb_dbname | default('grafanadb', true) }}"
+    mariadb_user_password: "{{ grafana_mariadb_user_password }}"
+    mariadb_root_password: "{{ grafana_mariadb_root_password }}"
+    mariadb_mem_limit: 400m
+    mariadb_data_path: "{{ mariadb_container_name }}"
+  tags:
+    - grafana
+
+- name: "grafana | Start grafana container" # noqa: no-changed-when
+  ansible.builtin.command:
+    cmd: "docker compose -f
+      {{ docker_data_path }}/dc_monitoring_grafana.yml up -d"
+    chdir: "{{ docker_data_path }}"
+  tags:
+    - grafana
+
+- name: "grafana | Add Prometheus scraper grafana"
+  ansible.builtin.blockinfile:
+    marker: "# {mark} ANSIBLE MANAGED BLOCK (grafana)"
+    path: "{{ docker_data_path }}/monitoring/prometheus/etc/prometheus.yml"
+    block: |2
+        - job_name: grafana
+          metrics_path: /grafana/metrics
+          static_configs:
+            - targets:
+                - grafana:3000
+        - job_name: grafana_db
+          static_configs:
+            - targets:
+                - grafana-mariadb-exporter:9104
+  when: prometheus_enabled | default(false)
+  notify: Restart prometheus container
+  tags:
+    - grafana

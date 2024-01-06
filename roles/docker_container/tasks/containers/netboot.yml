@@ -1,0 +1,38 @@
+---
+- name: "netboot | Create directories for netboot.xyz"
+  become: true
+  ansible.builtin.file:
+    path: "{{ docker_data_path }}/management/netboot/{{ item }}"
+    owner: "{{ docker_uid }}"
+    group: "{{ docker_group }}"
+    mode: '02775'
+    state: directory
+    recurse: true
+  with_items:
+    - "assets"
+    - "config"
+  tags:
+    - netboot
+
+- name: "netboot | Add docker-compose.yml for netboot.xyz"
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ docker_data_path }}/dc_management_netboot.yml"
+    group: "{{ docker_group }}"
+    mode: '0640'
+  vars:
+    project_name: management
+    ip_address: "{{ host_primary_ipv4_address |
+      default(ansible_default_ipv4.address) }}"
+    containers:
+      - netboot
+  tags:
+    - netboot
+
+- name: "netboot | Start netboot.xyz container" # noqa: no-changed-when
+  ansible.builtin.command:
+    cmd: >-
+      docker compose -f {{ docker_data_path }}/dc_management_netboot.yml up -d
+    chdir: "{{ docker_data_path }}"
+  tags:
+    - netboot

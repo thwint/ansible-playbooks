@@ -1,6 +1,23 @@
 # Nextcloud
 
-Setup a Nextcloud container with Redis and MariadB.
+Setup a Nextcloud container with Redis and MariadB. It listens on all hosts
+configured in `nextcloud_traefik_router_rules`.
+
+## Global variables
+
+Globally defined variables used by this deployment.
+
+| Name                    | Documentation                                 |
+| ----------------------- | --------------------------------------------- |
+| docker_data_path        | [Docker daemon](roles/docker_daemon.md)       |
+| docker_group            | [Docker daemon](roles/docker_daemon.md)       |
+| mariadb_version         | [MariaDB](roles/docker_container/mariadb.md)  |
+| redis_version           | [Redis](roles/docker_container/redis.md)      |
+| timezone                | [Base](roles/base.md)                         |
+| ssl_enabled             | [Docker container](roles/docker_container.md) |
+| prometheus_enabled      | [Docker container](roles/docker_container.md) |
+| docker_backend_network  | [Docker daemon](roles/docker_daemon.md)       |
+| docker_frontend_network | [Docker daemon](roles/docker_daemon.md)       |
 
 ## Nextcloud variables
 

@@ -14,9 +14,11 @@
       - --providers.docker.exposedbydefault=false
       - --ping
       - --entrypoints.web.address=:80
+{% if traefik_entrypoints is defined %}
 {% for entrypoint in traefik_entrypoints %}
       - --entrypoints.{{ entrypoint.name }}.address=:{{ entrypoint.port }}
 {% endfor %}
+{% endif %}
 {% if ssl_enabled | default(false, true) %}
       - --entrypoints.websecure.address=:443
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
@@ -48,9 +50,12 @@
     labels:
       traefik.enable: "true"
       traefik.http.routers.traefik.rule: Host(`{{ inventory_hostname }}`) && (PathPrefix(`/traefik`) || HeadersRegexp(`Referer`, `.*/traefik/.*`))
-      traefik.http.routers.traefik.middlewares: traefik-strip, https-redirect
+      traefik.http.routers.traefik.middlewares: traefik-strip
+{%- if ssl_enabled | default("", true) | length -%}
+      , https-redirect
+{% endif %}
 {%- if traefik_basic_auth | default("", true) | length -%}
-    , authtraefik
+      , authtraefik
 {% endif %}
       traefik.http.routers.traefik.service: api@internal
       traefik.http.middlewares.traefik-strip.stripprefix.prefixes: /traefik
@@ -81,14 +86,14 @@
 {% if ansible_virtualization_type == 'virtualbox' %}
       - "0.0.0.0:80:80"
 {% else %}
-      - "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:80:80"
+      - "{{ host_primary_ipv4_address }}:80:80"
 {% endif %}
 {% if ssl_enabled | default(false, true) %}
-      - "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:443:443"
+      - "{{ host_primary_ipv4_address }}:443:443"
 {% endif %}
-{% if traefik_entrypoints | length > 0%}
+{% if traefik_entrypoints is defined and traefik_entrypoints | length > 0 %}
 {% for entrypoint in traefik_entrypoints %}
-      - "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:{{ entrypoint.port }}:{{ entrypoint.port }}"
+      - "{{ host_primary_ipv4_address }}:{{ entrypoint.port }}:{{ entrypoint.port }}"
 {% endfor%}
 {% endif %}
     extra_hosts:

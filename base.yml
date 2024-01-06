@@ -5,7 +5,7 @@
     - "vars/4_default.yml"
     - "vars/3_versions.yml"
     - "vars/2_site.yml"
-    - "vars/1_host/{{ ansible_fqdn }}.yml"
+    - "vars/1_host/{{ inventory_hostname }}.yml"
     - "vars/custom.yml"
   roles:
     - base

@@ -1,0 +1,35 @@
+---
+- name: "node_exporter | Add docker-compose.yml for node_exporter"
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ docker_data_path }}/dc_monitoring_node_exporter.yml"
+    group: "{{ docker_group }}"
+    mode: '0640'
+  vars:
+    project_name: monitoring
+    containers:
+      - node_exporter
+  tags:
+    - node_exporter
+
+- name: "node_exporter | Start node_exporter container" # noqa: no-changed-when
+  ansible.builtin.command:
+    cmd: "docker compose -f
+      {{ docker_data_path }}/dc_monitoring_node_exporter.yml up -d"
+    chdir: "{{ docker_data_path }}"
+  tags:
+    - node_exporter
+
+- name: "node_exporter | Add Prometheus scraper node_exporter"
+  ansible.builtin.blockinfile:
+    marker: "# {mark} ANSIBLE MANAGED BLOCK (node_exporter)"
+    path: "{{ docker_data_path }}/monitoring/prometheus/etc/prometheus.yml"
+    block: |2
+        - job_name: node
+          static_configs:
+            - targets:
+                - nuc.localdomain:9100
+  when: prometheus_enabled | default(false)
+  notify: Restart prometheus container
+  tags:
+    - node_exporter
