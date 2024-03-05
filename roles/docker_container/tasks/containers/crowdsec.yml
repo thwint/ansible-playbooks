@@ -26,6 +26,7 @@
       - crowdsec
     container_volumes:
       - crowdsec_data
+      - crowdsec_staging
   tags:
     - crowdsec
 
@@ -51,17 +52,38 @@
   tags:
     - crowdsec
 
-- name: crowdsec | Create Traefik bouncer key
-  community.docker.docker_container_exec:
-    container: core-crowdsec-1
-    command: "cscli bouncers add bouncer-traefik -o raw"
-  register: crowdsec_traefik_bouncer
-  when: not crowdsec_bouncer_api_key
-  tags:
-    - crowdsec
+- name: crowdsec | Ensure traefik bouncer is enrolled
+  when: crowdsec_traefik_api_key is undefined
+  block:
+    - name: crowdsec | Create Traefik bouncer key
+      community.docker.docker_container_exec:
+        container: core-crowdsec-1
+        command: "cscli bouncers add bouncer-traefik -o raw"
+      register: crowdsec_traefik_bouncer
+      tags:
+        - crowdsec
 
-- name: crowdsec | Print generated API key
-  ansible.builtin.debug:
-    msg: "{{ crowdsec_traefik_bouncer }}"
+    - name: "crowdsec | Set fact for crowdsec_traefik_api_key"
+      ansible.builtin.set_fact:
+        crowdsec_traefik_api_key: "{{ crowdsec_traefik_bouncer.stdout }}"
+        cacheable: true
+      tags:
+        - crowdsec
+
+- name: "crowdsec | Add docker-compose.yml crowdsec"
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ item }}"
+    group: "{{ docker_group }}"
+    mode: '0640'
+  with_items:
+    - "{{ docker_data_path }}/dc_core_crowdsec.yml"
+  vars:
+    project_name: core
+    containers:
+      - crowdsec
+    container_volumes:
+      - crowdsec_data
+      - crowdsec_staging
   tags:
     - crowdsec

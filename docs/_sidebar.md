@@ -2,6 +2,7 @@
 - Playbooks
 - Roles
   - [Base](roles/base.md)
+  - [Crowdsec bouncers](roles/crowdsec_bouncers.md)
   - [Docker container](roles/docker_container.md)
     - [Adminer](roles/docker_container/adminer.md)
     - [MariaDB](roles/docker_container/mariadb.md)

@@ -1,0 +1,68 @@
+---
+- name: Add Crowdsec GPG apt Key
+  become: true
+  ansible.builtin.get_url:
+    url: https://packagecloud.io/crowdsec/crowdsec/gpgkey
+    dest: /etc/apt/trusted.gpg.d/crowdsec_key.asc
+    mode: '0644'
+    force: true
+  tags:
+    - crowdsec
+
+- name: Add Crowdsec repository # noqa: jinja[spacing]
+  become: true
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [signed-by=/etc/apt/trusted.gpg.d/crowdsec_key.asc]
+      https://packagecloud.io/crowdsec/crowdsec/
+      {{- ansible_distribution | lower }}
+      {{ ansible_distribution_release | lower }} main
+    state: present
+  tags:
+    - crowdsec
+
+- name: Update apt and install crowdsec bouncer
+  become: true
+  ansible.builtin.package:
+    name:
+      - crowdsec-firewall-bouncer-iptables
+    update_cache: true
+    state: present
+  tags:
+    - crowdsec
+
+- name: Ensure firewall bouncer is enrolled
+  when: crowdsec_fw_bouncer_api_key is undefined
+  block:
+    - name: Create firewall bouncer key
+      community.docker.docker_container_exec:
+        container: core-crowdsec-1
+        command: "cscli bouncers add bouncer-firewall -o raw"
+      register: crowdsec_fw_bouncer
+      tags:
+        - crowdsec
+
+    - name: "Set fact for crowdsec_fw_bouncer_api_key"
+      ansible.builtin.set_fact:
+        crowdsec_fw_bouncer_api_key: "{{ crowdsec_fw_bouncer.stdout }}"
+        cacheable: true
+      tags:
+        - crowdsec
+
+    - name: Print generated API key
+      ansible.builtin.debug:
+        msg: "{{ crowdsec_fw_bouncer_api_key }}"
+      tags:
+        - crowdsec
+
+- name: Configure crowdsec-firewall-bouncer
+  become: true
+  ansible.builtin.template:
+    src: crowdsec-firewall-bouncer.yaml.j2
+    dest: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    group: root
+    owner: root
+    mode: '0600'
+  tags:
+    - crowdsec
+  notify: Restart firewall bouncer

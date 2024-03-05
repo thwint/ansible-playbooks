@@ -1,7 +1,9 @@
-################################################################################
+###############################################################################
   traefik:
     image: traefik:{{ traefik_version | default("latest", true) }}
     hostname: traefik
+    environment:
+      TZ: {{ timezone }}
     command:
       - --log=true
       - --log.filepath=/var/log/traefik/traefik.log
@@ -25,8 +27,10 @@
       - --entrypoints.web.http.redirections.entrypoint.scheme=https
 {% endif %}
 {% if crowdsec_enabled | default(false, true) %}
-      - --entrypoints.http.http.middlewares=crowdsec-bouncer@docker
-      - --entrypoints.https.http.middlewares=crowdsec-bouncer@docker
+      - --entrypoints.http.http.middlewares=traefik-bouncer@docker
+      - --entrypoints.https.http.middlewares=traefik-bouncer@docker
+      - --experimental.plugins.traefik-bouncer.modulename=github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
+      - --experimental.plugins.traefik-bouncer.version=v1.2.0
 {% endif %}
       - --experimental.plugins.rewritebody.modulename=github.com/traefik/plugin-rewritebody
       - --experimental.plugins.rewritebody.version=v0.3.1
@@ -49,23 +53,28 @@
     read_only: true
     labels:
       traefik.enable: "true"
-      traefik.http.routers.traefik.rule: Host(`{{ inventory_hostname }}`) && (PathPrefix(`/traefik`) || HeadersRegexp(`Referer`, `.*/traefik/.*`))
+      traefik.http.routers.traefik.rule: Host(`{{ inventory_hostname }}`) && (PathPrefix(`/traefik`) || HeaderRegexp(`Referer`, `.*/traefik/.*`))
       traefik.http.routers.traefik.middlewares: traefik-strip
-{%- if ssl_enabled | default("", true) | length -%}
+{%- if ssl_enabled | default(false, true) -%}
       , https-redirect
-{% endif %}
-{%- if traefik_basic_auth | default("", true) | length -%}
+{%- endif -%}
+{%- if traefik_basic_auth | default("", true) | length > 1 -%}
       , authtraefik
+{%- endif -%}
+{%- if crowdsec_enabled | default(false, true) -%}
+      , traefik-bouncer
 {% endif %}
       traefik.http.routers.traefik.service: api@internal
       traefik.http.middlewares.traefik-strip.stripprefix.prefixes: /traefik
-{% if traefik_basic_auth | default("", true) | length %}
+{% if traefik_basic_auth | default("", true) | length > 1 %}
       # Basic auth
       traefik.http.middlewares.authtraefik.basicauth.users: {{ traefik_basic_auth }}
 {% endif %}
 {% if crowdsec_enabled | default(false, true) %}
-      traefik.http.middlewares.crowdsec-bouncer.forwardauth.address: http://crowdsec-bouncer-traefik:8080/api/v1/forwardAuth
-      traefik.http.middlewares.crowdsec-bouncer.forwardauth.trustForwardHeader: true
+      traefik.http.middlewares.traefik-bouncer.plugin.traefik-bouncer.crowdseclapikey: {{ crowdsec_traefik_api_key }}
+      traefik.http.middlewares.traefik-bouncer.plugin.traefik-bouncer.crowdseclapischeme: http
+      traefik.http.middlewares.traefik-bouncer.plugin.traefik-bouncer.crowdseclapihost: crowdsec:8080
+      traefik.http.middlewares.traefik-bouncer.plugin.traefik-bouncer.enabled: true
 {% endif %}
 {% if ssl_enabled | default(false, true) %}
       # SSL redirect
