@@ -15,6 +15,9 @@
 {% endif %}
       traefik.http.routers.portainer.service: portainer
       traefik.http.routers.portainer.middlewares: portainer-strip
+{%- if crowdsec_enabled | default(false, true) -%}
+      , traefik-bouncer
+{% endif %}
       traefik.http.routers.portainer.rule: Host(`{{ inventory_hostname }}`) && PathPrefix(`/portainer`)
       # Services
       traefik.http.services.portainer.loadbalancer.server.port: 9000

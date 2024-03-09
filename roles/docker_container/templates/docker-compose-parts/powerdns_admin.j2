@@ -22,6 +22,9 @@
 {% for rule in powerdns_admin_traefik_router_rules %}
         Host(`{{ rule }}`) {{ "||" if not loop.last else "" }}
 {% endfor %}
+{% if crowdsec_enabled | default(false, true) %}
+      traefik.http.routers.dns.middlewares: traefik-bouncer
+{% endif %}
       # Services
       traefik.http.services.dns.loadbalancer.server.port: 80
     depends_on:

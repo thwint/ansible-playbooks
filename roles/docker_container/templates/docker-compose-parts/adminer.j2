@@ -6,9 +6,13 @@
       TZ: {{ timezone }}
     labels:
       traefik.enable: "true"
-      traefik.http.routers.adminer.rule: PathPrefix(`/adminer`)
+      traefik.http.routers.adminer.rule: Path(`/adminer`)
+{% if crowdsec_enabled | default(false, true) %}
+      traefik.http.routers.adminer.middlewares: traefik-bouncer
+{% endif %}
 {% if ssl_enabled | default(false, true) %}
       traefik.http.routers.adminer.entrypoints: websecure
+      traefik.http.routers.adminer.tls: "true"
 {% else %}
       traefik.http.routers.adminer.entrypoints: web
 {% endif %}
